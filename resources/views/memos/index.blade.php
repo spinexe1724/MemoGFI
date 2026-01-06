@@ -1,12 +1,16 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="{{ asset('css/app.css') }}" rel="stylesheet" />
+    @vite('resources/css/app.css')
     <title>Dashboard Memo</title>
     <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
 </head>
 <body class="bg-gray-50 py-10 px-4">
+    
     <div class="max-w-6xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
         <div class="bg-blue-800 p-6 flex justify-between items-center">
             <div>
