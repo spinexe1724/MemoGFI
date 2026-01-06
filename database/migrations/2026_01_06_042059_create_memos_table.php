@@ -11,17 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('memos', function (Blueprint $table) {
-            $table->id();
-              $table->string('reference_no'); // e.g., 783/DIR/GFI/OL/11/2025
-        $table->string('recipient');    // e.g., Seluruh Karyawan
-        $table->string('sender');       // e.g., Direksi
-        $table->text('cc_list')->nullable();
-        $table->string('subject');
-        $table->text('body_text');
-        $table->string('gm_name')->default('Tohir Sutanto');
-        $table->timestamps();
-        });
+    Schema::create('memos', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('user_id')->constrained()->onDelete('cascade');
+    $table->string('reference_no');
+    $table->string('recipient');
+    $table->string('sender');
+    $table->text('cc_list')->nullable();
+    $table->string('subject');
+    $table->text('body_text');
+    $table->boolean('is_fully_approved')->default(false);
+    $table->timestamps();
+});
     }
 
     /**
