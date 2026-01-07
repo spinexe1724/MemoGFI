@@ -20,7 +20,7 @@
     <div class="max-w-4xl mx-auto bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
         <!-- Header Panel -->
         <div class="bg-blue-800 p-6">
-            <h2 class="text-2xl font-bold text-white">Memo Internal System</h2>
+            <h2 class="text-2xl font-bold text-white">Memo Internal System Gratama</h2>
             <p class="text-blue-100 text-sm">Silakan isi detail memo di bawah ini untuk menghasilkan PDF otomatis.</p>
         </div>
 
