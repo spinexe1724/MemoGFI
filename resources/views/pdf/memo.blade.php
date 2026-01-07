@@ -123,12 +123,12 @@
         <div class="meta-item"><span class="meta-label">Dari</span>: {{ $memo->sender }}</div>
         
         @if($memo->cc_list)
-            <div class="meta-item"><span class="meta-label">Cc.</span>: {{ $memo->cc_list }}</div>
+            <div class="meta-item"><span class="meta-label">Tembusan</span>: {{ $memo->cc_list }}</div>
         @endif
         
         <div class="meta-item"><span class="meta-label">Perihal</span>: <strong>{{ $memo->subject }}</strong></div>
         <div class="meta-item"><span class="meta-label">Tanggal Terbit</span>: {{ $memo->created_at->format('d F Y') }}</div>
-        <div class="meta-item"><span class="meta-label">Masa Berlaku</span>: {{ $memo->valid_until ? \Carbon\Carbon::parse($memo->valid_until)->format('d F Y') : 'Tanpa Batas' }}</div>
+        <div class="meta-item"><span class="meta-label">Akhir Berlaku Memo</span>: {{ $memo->valid_until ? \Carbon\Carbon::parse($memo->valid_until)->format('d F Y') : 'Tanpa Batas' }}</div>
         
         <div class="meta-item">
             <span class="meta-label">Status Memo</span>: 

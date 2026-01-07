@@ -8,9 +8,68 @@
     <title>Dashboard Memo</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 py-10 px-4">
+
+<body class="bg-gray-50">
+<div class="flex min-h-screen bg-gray-100">
+
+  <div class="relative flex h-screen w-full max-w-[18rem] flex-col bg-white p-4 text-gray-700 shadow-xl">
+    <div class="p-4 mb-2">
+    <a href="" class="flex items-center">
+         <img src="{{ asset('images/Capture.PNG')}}" class="" style="height:auto;"/>
+         <span class="self-center text-lg text-heading font-semibold whitespace-nowrap"></span>
+      </a>
+    </div>
+    <div class="garis-vertical"></div>
+
+    <aside class="relative flex h-screen w-full max-w-[20rem] flex-col bg-white p-4 text-gray-700">
+    <div class="p-4 mb-2">
+      <h5 class="text-xl font-semibold text-blue-gray-900">Sidebar Menu</h5>
+    </div>
     
-    <div class="max-w-6xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
+    <nav class="flex flex-col gap-1 p-2 text-base font-normal">
+      
+      <div class="relative w-full">
+        <button onclick="toggleDropdown('dashboard-menu', 'arrow-icon')" 
+          class="flex items-center justify-between w-full p-3 transition-all rounded-lg hover:bg-blue-gray-50 hover:text-blue-gray-900">
+          <div class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-4" fill="currentColor" viewBox="0 0 24 24"><path d="M2.25 2.25a.75.75 0 000 1.5H3v10.5a3 3 0 003 3h1.21l-1.172 3.513a.75.75 0 001.424.474l.329-.987h8.418l.33.987a.75.75 0 001.422-.474l-1.17-3.513H18a3 3 0 003-3V3.75h.75a.75.75 0 000-1.5H2.25z"/></svg>
+            <span>Dashboard</span>
+          </div>
+          <svg id="arrow-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 transition-transform duration-200">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+          </svg>
+        </button>
+        
+        <div id="dashboard-menu" class="hidden overflow-hidden pl-9 mt-1 transition-all duration-300">
+          <a href="#" class="block p-2 text-sm rounded-lg hover:bg-gray-100">Analytics</a>
+          <a href="#" class="block p-2 text-sm rounded-lg hover:bg-gray-100">Reporting</a>
+          <a href="#" class="block p-2 text-sm rounded-lg hover:bg-gray-100">Projects</a>
+        </div>
+      </div>
+
+      <div role="button" class="flex items-center w-full p-3 rounded-lg hover:bg-blue-gray-50">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6.912 3a3 3 0 00-2.868 2.118l-2.411 7.838a3 3 0 00-.133.882V18a3 3 0 003 3h15a3 3 0 003-3v-4.162c0-.299-.045-.596-.133-.882l-2.412-7.838A3 3 0 0017.088 3H6.912z"/></svg>
+        Inbox
+      </div>
+
+      
+      <div role="button" action="submit" class="flex items-center w-full p-3 rounded-lg hover:bg-red-50 text-red-600 mt-auto">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+        Log Out
+      </div>
+    </nav>
+  </aside>
+    <nav class="flex min-w-[240px] flex-col gap-1 p-2 font-sans text-base font-normal text-blue-gray-700">
+      </nav>
+  </div>
+
+  <main class="flex-1 p-8 overflow-y-auto">
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold text-blue-gray-900">Dashboard Overview</h1>
+      <p class="text-gray-600">Selamat datang kembali, admin.</p>
+    </header>
+
+    <div class="max-w-9xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
         <!-- Header Panel -->
         <div class="bg-blue-800 p-6 flex justify-between items-center">
             <div>
@@ -120,6 +179,19 @@
                 </table>
             </div>
         </div>
-    </div>
+  </main>
+  <script>
+  function toggleDropdown(menuId, arrowId) {
+    const menu = document.getElementById(menuId);
+    const arrow = document.getElementById(arrowId);
+    
+    // Toggle class hidden
+    menu.classList.toggle('hidden');
+    
+    // Putar arrow icon
+    arrow.classList.toggle('rotate-180');
+  }
+</script>
+</div>
 </body>
 </html>
