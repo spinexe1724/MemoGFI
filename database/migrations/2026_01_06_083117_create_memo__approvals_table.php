@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreignId('memo_id')->constrained()->onDelete('cascade');
             // Menghubungkan ke tabel users (GM yang menyetujui)
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
+             $table->text('note')->nullable();
             $table->timestamps();
         });
     }

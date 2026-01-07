@@ -1,22 +1,38 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
     <meta charset="UTF-8">
+    <title>Memo - {{ $memo->reference_no }}</title>
     <style>
         /* Pengaturan Halaman */
         @page { 
-            margin: 1cm; 
+            margin: 1.5cm 1cm 1.5cm 1cm; 
         }
         
         body { 
             font-family: 'Helvetica', 'Arial', sans-serif; 
             font-size: 11px; 
             color: #333; 
-            margin: 0; 
-            padding: 0; 
+            margin: 0;
+            padding: 0;
+            position: relative;
         }
 
-        /* Header & Metadata */
+        /* Penomoran Halaman (Fixed di setiap halaman) */
+        .page-number {
+            position: fixed;
+            bottom: -40px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 10px;
+            color: #999;
+        }
+        .pagenum:before { 
+            content: counter(page); 
+        }
+
+        /* Header */
         .header-title { 
             text-align: center; 
             font-weight: bold; 
@@ -28,45 +44,57 @@
             text-align: center; 
             font-weight: bold; 
             font-size: 13px; 
-            margin-bottom: 30px; 
+            margin-bottom: 25px; 
         }
-        .meta-container { 
-            margin-bottom: 20px; 
+
+        /* Metadata menggunakan Tabel agar lurus */
+        .meta-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
         }
-        .meta-item { 
-            margin-bottom: 6px; 
-            font-size: 12px; 
+        .meta-table td {
+            padding: 3px 0;
+            vertical-align: top;
+            font-size: 12px;
         }
-        .meta-label { 
-            display: inline-block; 
-            width: 110px; 
-            font-weight: bold; 
+        .meta-label {
+            width: 130px;
+            font-weight: bold;
         }
+        .meta-separator {
+            width: 10px;
+        }
+
         .line { 
             border-top: 1px solid #000; 
-            margin: 15px 0; 
+            margin: 10px 0 20px 0; 
         }
         
         /* Konten Utama */
         .content { 
             line-height: 1.6; 
             text-align: justify; 
-            font-size: 12px; 
-            /* Memberikan ruang kosong di bawah agar tidak menimpa footer */
-            margin-bottom: 260px; 
+            font-size: 12px;
+            /* Memberikan ruang kosong setinggi footer agar teks tidak tertutup sign box */
+            padding-bottom: 220px;
         }
         
-        /* Footer & Sign Box Positioning */
+        /* Sign Box Terkunci di Bagian Bawah Halaman */
         .footer-container {
             position: absolute;
-            bottom: 0;
+            bottom: 0px;
+            left: 0px;
             width: 100%;
+            /* Menjaga agar blok tanda tangan tidak terpotong antar halaman */
+            page-break-inside: avoid;
         }
+
         .approver-title { 
             text-align: center; 
             font-weight: bold; 
-            font-size: 14px; 
-            margin-bottom: 12px; /* Jarak antara teks 'Menyetujui' dan tabel */
+            font-size: 13px; 
+            margin-bottom: 10px; 
         }
         .table-sig { 
             width: 100%; 
@@ -77,90 +105,117 @@
             vertical-align: bottom; 
             text-align: center; 
             border: 1px solid black; 
-            padding: 10px; 
-            height: 100px; 
+            padding: 8px; 
+            height: 80px; 
             width: 20%;
         }
         .sig-space { 
-            height: 60px; 
-            position: relative; 
-            display: block;
+            height: 45px; 
+            text-align: center;
         } 
         .sig-name { 
             font-weight: bold; 
             text-decoration: underline; 
             display: block;
+            font-size: 10px;
         }
         .sig-role {
-            font-size: 10px;
+            font-size: 9px;
             display: block;
         }
         .mark-approved { 
             color: green; 
             font-weight: bold; 
-            font-size: 12px; 
+            font-size: 11px; 
         }
 
-        /* Badge Status & Warning */
         .status-badge {
             font-weight: bold;
             padding: 2px 6px;
             border-radius: 3px;
+            font-size: 10px;
+            border: 1px solid;
         }
-        .status-aktif { color: green; border: 1px solid green; }
-        .status-expired { color: red; border: 1px solid red; }
     </style>
 </head>
 <body>
 
-    <!-- Judul & No Referensi -->
+    <!-- Nomor Halaman -->
+    <div class="page-number">
+        Halaman <span class="pagenum"></span>
+    </div>
+
+    <!-- Judul -->
     <div class="header-title">MEMO INTERNAL</div>
     <div class="ref-no">{{ $memo->reference_no }}</div>
 
-    <!-- Metadata Informasi -->
-    <div class="meta-container">
-        <div class="meta-item"><span class="meta-label">Kepada</span>: {{ $memo->recipient }}</div>
-        <div class="meta-item"><span class="meta-label">Dari</span>: {{ $memo->sender }}</div>
-        
+    <!-- Informasi Metadata -->
+    <table class="meta-table">
+        <tr>
+            <td class="meta-label">Kepada</td>
+            <td class="meta-separator">:</td>
+            <td>{{ $memo->recipient }}</td>
+        </tr>
+        <tr>
+            <td class="meta-label">Dari</td>
+            <td class="meta-separator">:</td>
+            <td>{{ $memo->sender }}</td>
+        </tr>
         @if($memo->cc_list)
-            <div class="meta-item"><span class="meta-label">Tembusan</span>: {{ $memo->cc_list }}</div>
+        <tr>
+            <td class="meta-label">Tembusan</td>
+            <td class="meta-separator">:</td>
+            <td>{{ $memo->cc_list }}</td>
+        </tr>
         @endif
-        
-        <div class="meta-item"><span class="meta-label">Perihal</span>: <strong>{{ $memo->subject }}</strong></div>
-        <div class="meta-item"><span class="meta-label">Tanggal Terbit</span>: {{ $memo->created_at->format('d F Y') }}</div>
-        <div class="meta-item"><span class="meta-label">Akhir Berlaku Memo</span>: {{ $memo->valid_until ? \Carbon\Carbon::parse($memo->valid_until)->format('d F Y') : 'Tanpa Batas' }}</div>
-        
-        <div class="meta-item">
-            <span class="meta-label">Status Memo</span>: 
-            @if($memo->is_rejected)
-                <span class="status-badge status-expired">DITOLAK / DIBATALKAN</span>
-            @else
-                @php
-                    $isExpired = $memo->valid_until ? \Carbon\Carbon::now()->startOfDay()->gt($memo->valid_until) : false;
-                    $displayStatus = $isExpired ? 'TIDAK AKTIF' : 'AKTIF';
-                @endphp
-                <span class="status-badge {{ $displayStatus == 'AKTIF' ? 'status-aktif' : 'status-expired' }}">
-                    {{ $displayStatus }}
-                </span>
-            @endif
-        </div>
-    </div>
+        <tr>
+            <td class="meta-label">Perihal</td>
+            <td class="meta-separator">:</td>
+            <td><strong>{{ $memo->subject }}</strong></td>
+        </tr>
+        <tr>
+            <td class="meta-label">Tanggal Terbit</td>
+            <td class="meta-separator">:</td>
+            <td>{{ $memo->created_at->format('d F Y') }}</td>
+        </tr>
+        <tr>
+            <td class="meta-label">Akhir Berlaku Memo</td>
+            <td class="meta-separator">:</td>
+            <td>{{ $memo->valid_until ? \Carbon\Carbon::parse($memo->valid_until)->format('d F Y') : 'Tanpa Batas' }}</td>
+        </tr>
+        <tr>
+            <td class="meta-label">Status Memo</td>
+            <td class="meta-separator">:</td>
+            <td>
+                @if($memo->is_rejected)
+                    <span class="status-badge" style="color:red;">DITOLAK / DIBATALKAN</span>
+                @else
+                    @php
+                        $isExpired = $memo->valid_until ? \Carbon\Carbon::now()->startOfDay()->gt($memo->valid_until) : false;
+                        $displayStatus = $isExpired ? 'TIDAK AKTIF' : 'AKTIF';
+                    @endphp
+                    <span class="status-badge" style="color:{{ $displayStatus == 'AKTIF' ? 'green' : 'red' }};">
+                        {{ $displayStatus }}
+                    </span>
+                @endif
+            </td>
+        </tr>
+    </table>
 
     <div class="line"></div>
 
-    <!-- Isi Pesan Memo -->
+    <!-- Isi Pesan -->
     <div class="content">
         {!! $memo->body_text !!}
     </div>
 
-    <!-- Footer Tanda Tangan (Tetap di bawah) -->
+    <!-- Kotak Tanda Tangan -->
     <div class="footer-container">
         @if($memo->is_rejected)
-            <div style="text-align:center; color:red; border:2px solid red; padding:15px; font-size:16px; font-weight:bold; border-radius: 8px;">
+            <div style="text-align:center; color:red; border:2px solid red; padding:15px; font-size:14px; font-weight:bold; border-radius: 8px;">
                 DITOLAK: MEMO INI TELAH DIBATALKAN DAN TIDAK BERLAKU
             </div>
         @else
-            <!-- Teks Menyetujui di luar tabel -->
             <div class="approver-title">Menyetujui:</div>
             
             <table class="table-sig">
@@ -170,7 +225,7 @@
                         <div class="sig-space">
                             @if($memo->approvals->contains('id', $gm->id))
                                 <div class="mark-approved">
-                                    <span style="font-size: 20px;">✔</span><br>
+                                    <span style="font-size: 16px;">✔</span><br>
                                     APPROVED
                                 </div>
                             @endif

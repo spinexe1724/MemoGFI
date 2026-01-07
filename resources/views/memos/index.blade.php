@@ -7,6 +7,8 @@
     @vite('resources/css/app.css')
     <title>Dashboard Memo</title>
     <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body class="bg-gray-50">
@@ -144,12 +146,17 @@
                                 <!-- Aksi khusus GM -->
                                 @if(Auth::user()->role === 'gm' && !$memo->is_rejected && !$memo->is_fully_approved && !$isExpired)
                                     @if(!$memo->approvals->contains(Auth::user()))
-                                        <form action="{{ route('memos.approve', $memo->id) }}" method="POST" class="inline">
-                                            @csrf
-                                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-[11px] font-bold transition-all">
-                                                Approve
-                                            </button>
-                                        </form>
+                                   <button type="button" onclick="handleApprove({{ $memo->id }})" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-[11px] font-bold transition-all">
+    Approve
+</button>
+
+
+ <!-- Hidden Form Approval -->
+                    <form id="approve-form-{{ $memo->id }}" action="{{ route('memos.approve', $memo->id) }}" method="POST" style="display:none;">
+                        @csrf
+                        <input type="hidden" name="note" id="note-input-{{ $memo->id }}">
+                    </form>
+
                                             <form action="{{ route('memos.reject', $memo->id) }}" method="POST" class="inline" onsubmit="return confirm('Tolak memo ini? Tindakan ini tidak dapat dibatalkan.')">
                                         @csrf
                                         <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-[11px] font-bold transition-all">
@@ -157,6 +164,12 @@
                                         </button>
                                     </form>
                                 @endif
+                                    @if(Auth::user()->role === 'gm')
+        <a href="{{ route('memos.show', $memo->id) }}" class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-[11px] font-bold transition-all shadow-sm">
+            Detail
+        </a>
+    @endif
+
                                     @endif
                                     
                                 
@@ -166,7 +179,10 @@
                                    class="inline-block bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded text-[11px] font-bold border border-gray-300 transition-all">
                                     View PDF
                                 </a>
+                               
                             </td>
+                            
+
                         </tr>
                         @endforeach
                         
@@ -191,6 +207,61 @@
     // Putar arrow icon
     arrow.classList.toggle('rotate-180');
   }
+  function confirmApprove(memoId) {
+    Swal.fire({
+        title: 'Konfirmasi Persetujuan',
+        text: "Apakah Anda yakin ingin menyetujui memo ini?",
+        input: 'textarea',
+        inputLabel: 'Catatan (Opsional)',
+        inputPlaceholder: 'Tulis pesan atau catatan di sini...',
+        inputAttributes: {
+            'aria-label': 'Tulis catatan di sini'
+        },
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, Setujui!',
+        cancelButtonText: 'Batal',
+        preConfirm: (note) => {
+            // Kita bisa melakukan validasi di sini jika diperlukan
+            return note;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Jalankan fungsi pengiriman form
+            submitApprovalForm(memoId, result.value);
+        }
+    });
+}
+
+  function handleApprove(memoId) {
+        Swal.fire({
+            title: 'Konfirmasi Persetujuan',
+            text: "Tambahkan catatan jika diperlukan (opsional):",
+            input: 'textarea',
+            inputPlaceholder: 'Tulis catatan di sini...',
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#2563eb',
+            cancelButtonColor: '#dc2626',
+            confirmButtonText: 'Ya, Approve!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.getElementById('approve-form-' + memoId);
+                const input = document.getElementById('note-input-' + memoId);
+                
+                if (form && input) {
+                    // Set nilai note ke hidden input
+                    input.value = result.value;
+                    // Submit form secara manual
+                    form.submit();
+                } else {
+                    console.error('Form atau Input tidak ditemukan untuk ID: ' + memoId);
+                }
+            }
+        });
+    }
 </script>
 </div>
 </body>

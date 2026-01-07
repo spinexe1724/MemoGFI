@@ -32,6 +32,7 @@ class MemoController extends Controller
         return view('memos.create');
     }
 
+
     /**
      * Menyimpan memo baru ke database.
      */
@@ -53,34 +54,34 @@ class MemoController extends Controller
         
         return redirect()->route('memos.index')->with('success', 'Memo berhasil dibuat dan siap diproses.');
     }
+public function show($id) {
+    // Proteksi: Hanya GM yang bisa melihat detail internal ini
+    if (Auth::user()->role !== 'gm') abort(403, 'Unauthorized action.');
 
+    $memo = Memo::with(['approvals', 'user'])->findOrFail($id);
+    return view('memos.show', compact('memo'));
+}
     /**
      * Menangani persetujuan dari GM.
      */
-    public function approve($id)
-    {
-        if (Auth::user()->role !== 'gm') {
-            abort(403, 'Hanya Direktur/GM yang dapat menyetujui memo.');
-        }
+    public function approve(Request $request, $id) {
+    if (Auth::user()->role !== 'gm') abort(403);
+    $memo = Memo::findOrFail($id);
+    
+    if ($memo->is_rejected) return back()->with('error', 'Memo sudah ditolak.');
 
-        $memo = Memo::findOrFail($id);
-        
-        // Cek apakah memo sudah ditolak
-        if ($memo->is_rejected) {
-            return back()->with('error', 'Memo ini telah ditolak dan tidak dapat disetujui.');
-        }
+    if (!$memo->approvals()->where('user_id', Auth::id())->exists()) {
+        // Simpan approval beserta note (nullable)
+        $memo->approvals()->attach(Auth::id(), [
+            'note' => $request->input('note')
+        ]);
+    }
 
-        // Simpan approval jika GM ini belum menyetujui sebelumnya
-        if (!$memo->approvals()->where('user_id', Auth::id())->exists()) {
-            $memo->approvals()->attach(Auth::id());
-        }
+    if ($memo->approvals()->count() >= 5) {
+        $memo->update(['is_fully_approved' => true]);
+    }
 
-        // Jika jumlah approval mencapai 5, set status menjadi fully approved
-        if ($memo->approvals()->count() >= 5) {
-            $memo->update(['is_fully_approved' => true]);
-        }
-
-        return back()->with('success', 'Persetujuan Anda telah dicatat.');
+    return back()->with('success', 'Persetujuan berhasil.');
     }
 
     /**
