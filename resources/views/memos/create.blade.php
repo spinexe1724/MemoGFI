@@ -1,17 +1,26 @@
-
+<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="{{ asset('css/app.css') }}" rel="stylesheet" />
-    @vite('resources/css/app.css')
     <title>Buat Memo Internal Baru</title>
-    <!-- Tailwind CSS Play CDN: URL Bersih -->
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    
+    <!-- Menggunakan Vite untuk Asset Laravel -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    
+    <!-- Tailwind CSS CDN sebagai fallback -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
     <style>
         /* Mengatur tinggi minimum editor agar nyaman digunakan */
         .ck-editor__editable {
             min-height: 300px;
+        }
+        /* Style untuk validasi error */
+        .error-text {
+            color: #dc2626;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
         }
     </style>
 </head>
@@ -24,31 +33,51 @@
             <p class="text-blue-100 text-sm">Silakan isi detail memo di bawah ini untuk menghasilkan PDF otomatis.</p>
         </div>
 
+        <!-- Tampilkan Pesan Error Global jika ada -->
+        @if ($errors->any())
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 m-8 mb-0">
+                <p class="text-red-700 font-bold">Terjadi kesalahan input:</p>
+                <ul class="list-disc ml-5 text-red-600 text-sm">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <form action="{{ route('memos.store') }}" method="POST" class="p-8 space-y-6">
             @csrf
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Baris 1 -->
+                <!-- Baris 1: No Referensi & Masa Berlaku -->
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Nomor Referensi</label>
-                    <input type="text" name="reference_no" placeholder="Contoh: 783/DIR/GFI/OL/11/2025" 
+                    <input type="text" name="reference_no" value="{{ old('reference_no') }}" placeholder="Contoh: 783/DIR/GFI/OL/11/2025" 
                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none" required>
                 </div>
                 <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Masa Berlaku Memo (Selesai)</label>
+                    <input type="date" name="valid_until" value="{{ old('valid_until') }}" min="{{ date('Y-m-d') }}"
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none" required>
+                    <p class="text-xs text-gray-400 mt-1 italic">* Status akan otomatis TIDAK AKTIF setelah tanggal ini.</p>
+                </div>
+
+                <!-- Baris 2: Kepada & Dari -->
+                <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Kepada</label>
-                    <input type="text" name="recipient" placeholder="Contoh: Seluruh Karyawan" 
+                    <input type="text" name="recipient" value="{{ old('recipient') }}" placeholder="Contoh: Seluruh Karyawan" 
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Dari</label>
+                    <input type="text" name="sender" value="{{ old('sender', Auth::user()->name) }}" placeholder="Contoh: Direksi" 
                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none" required>
                 </div>
 
-                <!-- Baris 2 -->
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Dari</label>
-                    <input type="text" name="sender" placeholder="Contoh: Direksi" 
-                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none" required>
-                </div>
-                <div>
+                <!-- Baris 3: Cc -->
+                <div class="md:col-span-2">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Cc (Pisahkan dengan koma)</label>
-                    <input type="text" name="cc_list" placeholder="Contoh: Finance, HRD, GA" 
+                    <input type="text" name="cc_list" value="{{ old('cc_list') }}" placeholder="Contoh: Finance, HRD, GA" 
                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none">
                 </div>
             </div>
@@ -56,14 +85,14 @@
             <!-- Perihal -->
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Perihal / Subjek</label>
-                <input type="text" name="subject" placeholder="Contoh: Kegiatan Operasional HO di Hari Sabtu" 
+                <input type="text" name="subject" value="{{ old('subject') }}" placeholder="Contoh: Kegiatan Operasional HO di Hari Sabtu" 
                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none" required>
             </div>
             
             <!-- Editor -->
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Isi Pesan Memo</label>
-                <textarea name="body_text" id="editor"></textarea>
+                <textarea name="body_text" id="editor">{{ old('body_text') }}</textarea>
             </div>
 
             <!-- Aksi -->
@@ -76,7 +105,7 @@
         </form>
     </div>
 
-    <!-- CKEditor Script: URL Bersih -->
+    <!-- CKEditor Script -->
     <script src="https://cdn.ckeditor.com/ckeditor5/36.0.1/classic/ckeditor.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function() {

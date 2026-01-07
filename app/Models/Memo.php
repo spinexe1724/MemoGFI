@@ -9,15 +9,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Memo extends Model
 {
     protected $fillable = [
-        'user_id', 
-        'reference_no', 
-        'recipient', 
-        'sender', 
-        'cc_list', 
-        'subject', 
-        'body_text', 
-        'is_fully_approved'
-    ];
+    'user_id', 'reference_no', 'recipient', 'sender', 
+    'cc_list', 'subject', 'body_text', 'valid_until', 'is_fully_approved', 'is_rejected'
+];
 
     public function user(): BelongsTo
     {
