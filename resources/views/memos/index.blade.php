@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,76 +7,95 @@
     @vite('resources/css/app.css')
     <title>Dashboard Memo</title>
     <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <title>White Clean Dashboard</title>
 </head>
-
 <body class="bg-gray-50">
-<div class="flex min-h-screen bg-gray-100">
 
-  <div class="relative flex h-screen w-full max-w-[18rem] flex-col bg-white p-4 text-gray-700 shadow-xl">
-    <div class="p-4 mb-2">
-    <a href="" class="flex items-center">
+    <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 bg-white border-r border-gray-200">
+        
+        <div class="flex items-center px-6 py-5 bg-gray shadow-md">
+        <a href="" class="flex items-center">
          <img src="{{ asset('images/Capture.PNG')}}" class="" style="height:auto;"/>
          <span class="self-center text-lg text-heading font-semibold whitespace-nowrap"></span>
       </a>
-    </div>
-    <div class="garis-vertical"></div>
-
-    <aside class="relative flex h-screen w-full max-w-[20rem] flex-col bg-white p-4 text-gray-700">
-    <div class="p-4 mb-2">
-      <h5 class="text-xl font-semibold text-blue-gray-900">Sidebar Menu</h5>
-    </div>
-    
-    <nav class="flex flex-col gap-1 p-2 text-base font-normal">
-      
-      <div class="relative w-full">
-        <button onclick="toggleDropdown('dashboard-menu', 'arrow-icon')" 
-          class="flex items-center justify-between w-full p-3 transition-all rounded-lg hover:bg-blue-gray-50 hover:text-blue-gray-900">
-          <div class="flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-4" fill="currentColor" viewBox="0 0 24 24"><path d="M2.25 2.25a.75.75 0 000 1.5H3v10.5a3 3 0 003 3h1.21l-1.172 3.513a.75.75 0 001.424.474l.329-.987h8.418l.33.987a.75.75 0 001.422-.474l-1.17-3.513H18a3 3 0 003-3V3.75h.75a.75.75 0 000-1.5H2.25z"/></svg>
-            <span>Dashboard</span>
-          </div>
-          <svg id="arrow-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 transition-transform duration-200">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-          </svg>
-        </button>
-        
-        <div id="dashboard-menu" class="hidden overflow-hidden pl-9 mt-1 transition-all duration-300">
-          <a href="#" class="block p-2 text-sm rounded-lg hover:bg-gray-100">Analytics</a>
-          <a href="#" class="block p-2 text-sm rounded-lg hover:bg-gray-100">Reporting</a>
-          <a href="#" class="block p-2 text-sm rounded-lg hover:bg-gray-100">Projects</a>
         </div>
-      </div>
 
-      <div role="button" class="flex items-center w-full p-3 rounded-lg hover:bg-blue-gray-50">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6.912 3a3 3 0 00-2.868 2.118l-2.411 7.838a3 3 0 00-.133.882V18a3 3 0 003 3h15a3 3 0 003-3v-4.162c0-.299-.045-.596-.133-.882l-2.412-7.838A3 3 0 0017.088 3H6.912z"/></svg>
-        Inbox
-      </div>
+        <nav class="mt-6 px-3 space-y-2">
+            <a href="#" class="flex items-center p-3 text-blue-600 rounded-xl bg-blue-50 font-medium group">
+                <i data-lucide="layout-grid" class="w-5 h-5"></i>
+                <span class="ml-3">Dashboard</span>
+            </a>
+            <a href="#" class="flex items-center p-3 text-gray-500 rounded-xl hover:bg-gray-100 hover:text-gray-900 transition-all group">
+                <i data-lucide="shopping-bag" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                <span class="ml-3">Products</span>
+            </a>
+            <div class="space-y-1">
+                <button onclick="toggleDropdown('ecommerce-drop')" class="flex items-center justify-between w-full p-3 text-gray-600 rounded-xl hover:bg-gray-50 transition group">
+                    <div class="flex items-center">
+                        <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                        <span class="ml-3">E-Commerce</span>
+                    </div>
+                    <i data-lucide="chevron-down" id="arrow-ecommerce-drop" class="w-4 h-4 transition-transform duration-200"></i>
+                </button>
+                <div id="ecommerce-drop" class="hidden pl-11 pr-3 py-1 space-y-1">
+                    <a href="#" class="block p-2 text-sm text-gray-500 hover:text-blue-600 rounded-lg">Products</a>
+                    <a href="#" class="block p-2 text-sm text-gray-500 hover:text-blue-600 rounded-lg">Orders</a>
+                </div>
+            </div>
+            <a href="#" class="flex items-center p-3 text-gray-500 rounded-xl hover:bg-gray-100 hover:text-gray-900 transition-all group">
+                <i data-lucide="mail" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                <span class="ml-3">Messages</span>
+            </a>
+            
+            <div class="pt-4 mt-4 border-t border-gray-100">
+                <a href="#" class="flex items-center p-3 text-gray-500 rounded-xl hover:bg-red-50 hover:text-red-600 transition-all group">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                    <span class="ml-3">Sign Out</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
 
-      
-      <div role="button" action="submit" class="flex items-center w-full p-3 rounded-lg hover:bg-red-50 text-red-600 mt-auto">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-        Log Out
-      </div>
-    </nav>
-  </aside>
-    <nav class="flex min-w-[240px] flex-col gap-1 p-2 font-sans text-base font-normal text-blue-gray-700">
-      </nav>
-  </div>
+    <div class="sm:ml-64">
+        
+        <nav class="sticky top-0 z-30 flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200">
+            <button onclick="toggleSidebar()" class="p-2 text-gray-600 rounded-lg sm:hidden hover:bg-gray-100">
+                <i data-lucide="menu" class="w-6 h-6"></i>
+            </button>
 
-  <main class="flex-1 p-8 overflow-y-auto">
-    <header class="mb-8">
-      <h1 class="text-3xl font-bold text-blue-gray-900">Dashboard Overview</h1>
-      <p class="text-gray-600">Selamat datang kembali, admin.</p>
-    </header>
+            <div class="hidden sm:flex items-center bg-gray-100 px-3 py-2 rounded-lg border border-transparent focus-within:border-blue-400 focus-within:bg-white transition-all">
+                <i data-lucide="search" class="w-4 h-4 text-gray-400"></i>
+                <input type="text" class="ml-2 bg-transparent outline-none text-sm w-64" placeholder="Search anything...">
+            </div>
 
-    <div class="max-w-9xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
+            <div class="flex items-center space-x-4">
+                
+                <div class="h-8 w-[1px] bg-gray-200"></div>
+                <div class="flex items-center gap-3 cursor-pointer">
+                    <div class="text-right hidden md:block">
+                        <p class="text-xs font-semibold text-gray-900 leading-none"> User: {{ Auth::user()->name }} </p>
+                        <p class="text-[10px] text-gray-500 mt-1">({{ strtoupper(Auth::user()->role) }})</p>
+                    </div>
+                    <img src="https://ui-avatars.com/api/?name=AJ&background=0D8ABC&color=fff" class="w-9 h-9 rounded-full border border-gray-200 shadow-sm" alt="User">
+                </div>
+            </div>
+        </nav>
+
+        <main class="p-8">
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-gray-800">Memo({{ strtoupper(Auth::user()->role) }})</h2>
+                <p class="text-gray-500">List Memo Internal Gratama Finance</p>
+            </div>
+
+            <div class="max-w-9xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
         <!-- Header Panel -->
-        <div class="bg-blue-800 p-6 flex justify-between items-center">
+        <div class="bg-red-800 p-6 flex justify-between items-center">
             <div>
                 <h1 class="text-2xl font-bold text-white">Internal Memos</h1>
-                <p class="text-blue-100 italic text-sm">User: {{ Auth::user()->name }} ({{ strtoupper(Auth::user()->role) }})</p>
+                <p class="text-blue-100 italic text-sm"></p>
             </div>
             <form action="{{ route('logout') }}" method="POST">
                 @csrf
@@ -195,8 +214,21 @@
                 </table>
             </div>
         </div>
-  </main>
-  <script>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Inisialisasi Lucide Icons
+        lucide.createIcons();
+
+        // Toggle Sidebar Mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('-translate-x-full');
+        }
+        
+
   function toggleDropdown(menuId, arrowId) {
     const menu = document.getElementById(menuId);
     const arrow = document.getElementById(arrowId);
@@ -262,7 +294,7 @@
             }
         });
     }
-</script>
-</div>
+    </script>
+    
 </body>
 </html>

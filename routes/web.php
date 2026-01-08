@@ -19,6 +19,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Route khusus Approval & Reject
     Route::post('/memos/{id}/approve', [MemoController::class, 'approve'])->name('memos.approve');
     Route::post('/memos/{id}/reject', [MemoController::class, 'reject'])->name('memos.reject');
-    Route::get('/memos/{id}/pdf', [MemoController::class, 'generatePdf'])->name('memos.pdf');
+    Route::get('/memos/{id}/pdf', [MemoController::class, 'download'])->name('memos.pdf');
 });
 require __DIR__.'/auth.php';
