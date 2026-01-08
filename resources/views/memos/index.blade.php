@@ -125,7 +125,6 @@
                     <tbody>
                         @foreach($memos as $memo)
                         @php
-                            // Perbaikan: Tambahkan pengecekan jika valid_until bernilai null
                             $isExpired = $memo->valid_until ? \Carbon\Carbon::now()->startOfDay()->gt($memo->valid_until) : false;
                         @endphp
                         <tr class="hover:bg-gray-50 transition {{ $isExpired || $memo->is_rejected ? 'bg-red-50' : '' }}">
@@ -162,15 +161,19 @@
                                 </div>
                             </td>
                             <td class="p-3 border text-center space-x-1">
+                                 @if(Auth::id() == $memo->user_id && $memo->approvals->count() == 0 && !$memo->is_rejected)
+                                        <a href="{{ route('memos.edit', $memo->id) }}" class="inline-flex items-center bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm transition-all transform active:scale-95">
+                                            <i data-lucide="pencil" class="w-3 h-3 mr-1"></i> Edit
+                                        </a>
+                                    @endif
                                 <!-- Aksi khusus GM -->
-                                @if(Auth::user()->role === 'gm' && !$memo->is_rejected && !$memo->is_fully_approved && !$isExpired)
-                                    @if(!$memo->approvals->contains(Auth::user()))
+                                @if(in_array(Auth::user()->role, ['gm', 'direksi']) && !$memo->is_rejected && !$memo->is_fully_approved)
+        @if(!$memo->approvals->contains('id', Auth::id()))
                                    <button type="button" onclick="handleApprove({{ $memo->id }})" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-[11px] font-bold transition-all">
     Approve
 </button>
-
-
- <!-- Hidden Form Approval -->
+     
+ 
                     <form id="approve-form-{{ $memo->id }}" action="{{ route('memos.approve', $memo->id) }}" method="POST" style="display:none;">
                         @csrf
                         <input type="hidden" name="note" id="note-input-{{ $memo->id }}">

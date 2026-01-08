@@ -34,6 +34,12 @@ class DatabaseSeeder extends Seeder
             'role' => 'gm'
         ]);
     }
+   \App\Models\User::create([
+        'name' => 'Super Administrator',
+        'email' => 'admin@gratama.com',
+        'password' => Hash::make('password123'),
+        'role' => 'superadmin',
+    ]);
 }
 
 }

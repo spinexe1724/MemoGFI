@@ -110,7 +110,7 @@
                 <!-- Baris 1: No Referensi & Masa Berlaku -->
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Nomor Referensi</label>
-                    <input type="text" name="reference_no" value="{{ old('reference_no') }}" placeholder="Contoh: 783/DIR/GFI/OL/11/2025" 
+                    <input type="text" name="reference_no" value="{{ $autoRef }}" readonly 
                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none" required>
                 </div>
                 <div>
@@ -122,13 +122,13 @@
 
                 <!-- Baris 2: Kepada & Dari -->
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Kepada</label>
+                    <label class="p block text-sm font-semibold text-gray-700 mb-2">Kepada</label>
                     <input type="text" name="recipient" value="{{ old('recipient') }}" placeholder="Contoh: Seluruh Karyawan" 
                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none" required>
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Dari</label>
-                    <input type="text" name="sender" value="{{ old('sender', Auth::user()->name) }}" placeholder="Contoh: Direksi" 
+                    <input type="text" name="sender" value="{{ old('sender', Auth::user()->division) }}" readonly 
                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none" required>
                 </div>
 
