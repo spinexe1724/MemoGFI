@@ -1,3 +1,8 @@
+@extends('layouts.app') {{--  layout --}}
+
+@section('title', 'Home Memo System') {{-- title --}}
+
+@section('content') {{-- content section --}}
 <x-app-layout>
     <x-slot name="header">
         <div class="flex justify-between items-center">
@@ -45,3 +50,5 @@
         </div>
     </div>
 </x-app-layout>
+
+@endsection

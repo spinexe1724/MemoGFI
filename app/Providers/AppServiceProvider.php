@@ -28,7 +28,8 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\Gate::define('is-superadmin', function($user) {
         return $user->role === 'superadmin';
     });
-    
+        
+
     }
     
 }
