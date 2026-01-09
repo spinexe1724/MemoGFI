@@ -3,6 +3,7 @@
 use App\Http\Controllers\MemoController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\DivisionController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -25,7 +26,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // --- Dashboard & Memo Management ---
     // Dashboard menggunakan method index dari MemoController
     Route::get('/dashboard', [MemoController::class, 'index'])->name('dashboard');
-    
+     Route::get('/memos/logs', [MemoController::class, 'allLogs'])
+        ->name('memos.logs')
+        ->middleware('can:is-superadmin');
     // Resource route untuk Memos (Index, Create, Store, Edit, Update, Show, Destroy)
     Route::resource('memos', MemoController::class);
     
@@ -39,8 +42,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // --- User Management (Khusus Superadmin) ---
     // Proteksi menggunakan Gate 'is-superadmin' yang didefinisikan di AppServiceProvider
-    Route::middleware(['can:is-superadmin'])->group(function () {
+   Route::middleware(['can:is-superadmin'])->group(function () {
         Route::resource('users', UserController::class);
+        Route::resource('divisions', DivisionController::class)->only(['index', 'store', 'destroy']);
     });
 
 

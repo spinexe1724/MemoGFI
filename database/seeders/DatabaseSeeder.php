@@ -10,12 +10,7 @@ class DatabaseSeeder extends Seeder
 {
   public function run(): void {
     // Akun Staff
-    User::create([
-        'name' => 'Staff Account', 
-        'email' => 'staff@test.com', 
-        'password' => bcrypt('password'), 
-        'role' => 'staff'
-    ]);
+   
     
     // Akun 5 GM dengan email berbasis nama
     $gms = [
@@ -34,6 +29,8 @@ class DatabaseSeeder extends Seeder
             'role' => 'gm'
         ]);
     }
+
+    
    \App\Models\User::create([
         'name' => 'Super Administrator',
         'email' => 'admin@gratama.com',

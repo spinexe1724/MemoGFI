@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Gate; // TAMBAHKAN BARIS INI
+use App\Models\User; // Pastikan baris ini merujuk ke App\Models\User
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,14 +21,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-    \Illuminate\Support\Facades\Gate::define('is-superadmin', function($user) {
+   Gate::define('is-superadmin', function (User $user) {
         return $user->role === 'superadmin';
     });
             \Illuminate\Support\Facades\Gate::define('is-approver', function($user) {
         return in_array($user->role, ['gm', 'direksi']);
     });
 
-        
+          Gate::before(function ($user, $ability) {
+            if ($user->role === 'superadmin') {
+                return true;
+            }
+        });
     
         
 

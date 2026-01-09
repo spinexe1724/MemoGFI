@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Division;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -16,12 +17,11 @@ class UserController extends Controller
     public function index()
     {
         // Pengecekan keamanan tambahan tingkat controller
-        if (Auth::user()->role !== 'superadmin') {
-            abort(403, 'Akses ditolak. Anda bukan Superadmin.');
-        }
-
-        $users = User::latest()->paginate(5);
-        return view('users.index', compact('users'));
+     $user = Auth::user();
+    if ($user->role === 'superadmin') {
+        // Ini akan mencari route dengan ->name('memos.logs')
+        return redirect()->route('memos.logs'); 
+    }
     }
 
     /**
@@ -32,7 +32,8 @@ class UserController extends Controller
         if (Auth::user()->role !== 'superadmin') {
             abort(403);
         }
-        return view('users.create');
+          $divisions = Division::all(); // Ambil dari DB
+        return view('users.create', compact('divisions'));
     }
 
     /**
@@ -48,19 +49,27 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', 'in:superadmin,gm,direksi,staff'],
-            'division' => ['required', 'in:IT,HRD,IC,Remedial'], // Validasi dropdown divisi
+            'role' => ['required', 'in:superadmin,gm,direksi,supervisor'],
+            'division' => ['nullable'], // Validasi dropdown divisi
+                 'level' => ['required_if:role,staff,gm,direksi,superadmin', 'nullable', 'in:2,3'],
         ]);
-
+        
+        $role = $request->role;
+        $level = $request->level;
+  // LOGIKA AUTO-LEVEL: Jika supervisor, paksa level ke 2 (Akses Divisi)
+        if ($role === 'supervisor') {
+            $level = 2;
+        }
         User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
             'division' => $request->division,
+            'level' => $level ?? 2, // Fallback ke level 2 jika tidak terdefinisi
         ]);
 
-        return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan ke sistem.');
+        return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan dengan akses Level ' . ($level ?? 2));
     }
 
     /**
@@ -86,15 +95,21 @@ class UserController extends Controller
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email,'.$user->id],
-            'role' => ['required', 'in:superadmin,gm,direksi,staff'],
+            'role' => ['required', 'in:superadmin,gm,direksi,supervisor'],
             'division' => ['required', 'in:IT,HRD,IC,Remedial'],
-        ]);
+                        'level' => ['required_if:role,staff,gm,direksi,superadmin', 'nullable', 'in:2,3'],
 
+        ]);
+        $role = $request->role;
+        $level = ($role === 'supervisor') ? 2 : $request->level;
         $user->name = $request->name;
         $user->email = $request->email;
         $user->role = $request->role;
-        $user->division = $request->division;
 
+        $user->division = $request->division;
+        $user->level = $level;
+
+        
         // Update password hanya jika diisi
         if ($request->filled('password')) {
             $request->validate([
