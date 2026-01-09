@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <title>White Clean Dashboard</title>
     <!-- Tailwind CSS CDN sebagai fallback -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    c
     
     <style>
         /* Mengatur tinggi minimum editor agar nyaman digunakan */

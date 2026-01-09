@@ -20,6 +20,12 @@ class DivisionController extends Controller implements HasMiddleware
             new Middleware('can:is-superadmin', only: ['index', 'store', 'destroy']),
         ];
     }
+    public function pindah()
+{
+    // Lakukan logika sesuatu di sini...
+    
+    return redirect()->route('divisions.create');
+}
 
     /**
      * Menampilkan daftar divisi.

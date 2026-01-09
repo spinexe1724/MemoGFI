@@ -53,6 +53,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/divisions/create', function () {return view('divisions.create');})->name('divisions.create');
 });
 
 // Memuat rute autentikasi bawaan Breeze (Login, Register, dsb)
