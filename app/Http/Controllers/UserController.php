@@ -6,31 +6,50 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rules;
 
 class UserController extends Controller
 {
-    public function index() {
-        if (Auth::user()->role !== 'superadmin') abort(403);
-        $users = User::where('id', '!=', Auth::id())->get();
+    /**
+     * Menampilkan daftar pengguna (Hanya untuk Superadmin).
+     */
+    public function index()
+    {
+        // Pengecekan keamanan tambahan tingkat controller
+        if (Auth::user()->role !== 'superadmin') {
+            abort(403, 'Akses ditolak. Anda bukan Superadmin.');
+        }
+
+        $users = User::latest()->get();
         return view('users.index', compact('users'));
     }
-public function show(){
 
-}
-    public function create() {
-        if (Auth::user()->role !== 'superadmin') abort(403);
+    /**
+     * Menampilkan form untuk membuat pengguna baru.
+     */
+    public function create()
+    {
+        if (Auth::user()->role !== 'superadmin') {
+            abort(403);
+        }
         return view('users.create');
     }
 
-    public function store(Request $request) {
-        if (Auth::user()->role !== 'superadmin') abort(403);
-        
+    /**
+     * Menyimpan pengguna baru ke database.
+     */
+    public function store(Request $request)
+    {
+        if (Auth::user()->role !== 'superadmin') {
+            abort(403);
+        }
+
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|in:gm,staff',
-             'division' => 'required|string|max:100', // Validasi divisi
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'role' => ['required', 'in:superadmin,gm,direksi,staff'],
+            'division' => ['required', 'in:IT,HRD,IC,Remedial'], // Validasi dropdown divisi
         ]);
 
         User::create([
@@ -41,11 +60,70 @@ public function show(){
             'division' => $request->division,
         ]);
 
-        return redirect()->route('users.index')->with('success', 'User created successfully.');
+        return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan ke sistem.');
     }
-     public function destroy($id) {
-        if (Auth::user()->role !== 'superadmin') abort(403);
-        User::findOrFail($id)->delete();
-        return redirect()->route('users.index')->with('success', 'User deleted successfully.');
+
+    /**
+     * Menampilkan form edit pengguna.
+     */
+    public function edit(User $user)
+    {
+        if (Auth::user()->role !== 'superadmin') {
+            abort(403);
+        }
+        return view('users.edit', compact('user'));
+    }
+
+    /**
+     * Memperbarui data pengguna.
+     */
+    public function update(Request $request, User $user)
+    {
+        if (Auth::user()->role !== 'superadmin') {
+            abort(403);
+        }
+
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email,'.$user->id],
+            'role' => ['required', 'in:superadmin,gm,direksi,staff'],
+            'division' => ['required', 'in:IT,HRD,IC,Remedial'],
+        ]);
+
+        $user->name = $request->name;
+        $user->email = $request->email;
+        $user->role = $request->role;
+        $user->division = $request->division;
+
+        // Update password hanya jika diisi
+        if ($request->filled('password')) {
+            $request->validate([
+                'password' => ['confirmed', Rules\Password::defaults()],
+            ]);
+            $user->password = Hash::make($request->password);
+        }
+
+        $user->save();
+
+        return redirect()->route('users.index')->with('success', 'Data user berhasil diperbarui.');
+    }
+
+    /**
+     * Menghapus pengguna dari sistem.
+     */
+    public function destroy(User $user)
+    {
+        if (Auth::user()->role !== 'superadmin') {
+            abort(403);
+        }
+
+        // Mencegah superadmin menghapus dirinya sendiri
+        if ($user->id === Auth::id()) {
+            return back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
+        }
+
+        $user->delete();
+
+        return redirect()->route('users.index')->with('success', 'User telah berhasil dihapus.');
     }
 }
