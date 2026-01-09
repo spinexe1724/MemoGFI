@@ -32,9 +32,7 @@ class MemoController extends Controller implements HasMiddleware
         $user = Auth::user();
 
         // Superadmin diarahkan ke halaman Logs
-        if ($user->role === 'superadmin') {
-            return redirect()->route('memos.logs');
-        }
+       
 
         if ($user->level == 3) {
             $memos = Memo::with(['approvals', 'user'])->latest()->paginate(5);
@@ -52,15 +50,7 @@ class MemoController extends Controller implements HasMiddleware
     /**
      * Log Memo untuk Superadmin
      */
-    public function allLogs()
-    {
-        if (Auth::user()->role !== 'superadmin') {
-            abort(403, 'Hanya Superadmin yang dapat mengakses log ini.');
-        }
-
-        $memos = Memo::with('user')->latest()->paginate(20);
-        return view('memos.logs', compact('memos'));
-    }
+   
 
     private function getRomanMonth($month)
     {

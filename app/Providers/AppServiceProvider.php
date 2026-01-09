@@ -28,11 +28,7 @@ class AppServiceProvider extends ServiceProvider
         return in_array($user->role, ['gm', 'direksi']);
     });
 
-          Gate::before(function ($user, $ability) {
-            if ($user->role === 'superadmin') {
-                return true;
-            }
-        });
+    
     
         
 

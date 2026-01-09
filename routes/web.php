@@ -26,9 +26,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // --- Dashboard & Memo Management ---
     // Dashboard menggunakan method index dari MemoController
     Route::get('/dashboard', [MemoController::class, 'index'])->name('dashboard');
-     Route::get('/memos/logs', [MemoController::class, 'allLogs'])
-        ->name('memos.logs')
-        ->middleware('can:is-superadmin');
+    //  Route::get('/memos/logs', [MemoController::class, 'allLogs'])
+    //     ->name('memos.logs')
+    //     ->middleware('can:is-superadmin');
     // Resource route untuk Memos (Index, Create, Store, Edit, Update, Show, Destroy)
     Route::resource('memos', MemoController::class);
     

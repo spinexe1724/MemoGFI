@@ -17,11 +17,12 @@ class UserController extends Controller
     public function index()
     {
         // Pengecekan keamanan tambahan tingkat controller
-     $user = Auth::user();
-    if ($user->role === 'superadmin') {
-        // Ini akan mencari route dengan ->name('memos.logs')
-        return redirect()->route('memos.logs'); 
-    }
+        if (Auth::user()->role !== 'superadmin') {
+            abort(403, 'Akses ditolak. Anda bukan Superadmin.');
+        }
+
+        $users = User::latest()->paginate(5);
+        return view('users.index', compact('users'));
     }
 
     /**
