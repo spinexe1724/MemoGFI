@@ -3,7 +3,6 @@
 @section('title', 'Home Memo System') {{-- title --}}
 
 @section('content') {{-- content section --}}
-<x-app-layout>
     <div class="py-12">
         <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white p-8 rounded-xl shadow-lg border">
@@ -55,6 +54,5 @@
             </div>
         </div>
     </div>
-</x-app-layout>
 
 @endsection

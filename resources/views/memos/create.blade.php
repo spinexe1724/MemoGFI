@@ -21,8 +21,8 @@
 
         <form action="{{ route('memos.store') }}" method="POST" class="p-8 space-y-6">
             @csrf
-            <h2 style="font-size:20px;">Input Memo Baru</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <h2 style="font-size:20px;">Tambah Memo Baru</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <!-- Baris 1: No Referensi & Masa Berlaku -->
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Nomor Referensi</label>

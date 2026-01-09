@@ -20,7 +20,7 @@ class UserController extends Controller
             abort(403, 'Akses ditolak. Anda bukan Superadmin.');
         }
 
-        $users = User::latest()->get();
+        $users = User::latest()->paginate(5);
         return view('users.index', compact('users'));
     }
 

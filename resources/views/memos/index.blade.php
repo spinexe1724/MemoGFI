@@ -9,7 +9,7 @@
 <div class="p-">
 <div class="bg-red-800 p-6 flex justify-between items-center" style="height:70px;">
             <div>
-                <h1 class="text-2xl font-bold text-white">Memo Internal </h1>
+                <h1 class="text-2xl font-bold text-white">Daftar Memo Gratama </h1>
                 <p class="text-blue-100 italic text-sm"></p>
                 
             </div>
@@ -30,7 +30,7 @@
     <table class="w-full text-left border-collapse">
       <thead>
         <tr class="bg-gray-50/50">
-          <th class="px-6 py-4 text-sm font-semibold uppercase tracking-wider text-gray-600">Detail Memo</th>
+          <th class="px-6 py-4 text-sm font-semibold uppercase tracking-wider text-gray-600">Memo Aktif</th>
           <th class="px-6 py-4 text-sm font-semibold uppercase tracking-wider text-gray-600">Progress</th>
           <th class="px-6 py-4 text-sm font-semibold uppercase tracking-wider text-gray-600">Status</th>
           <th class="px-6 py-4 text-sm font-semibold uppercase tracking-wider text-gray-600 text-right">Lihat</th>
@@ -137,9 +137,10 @@
       
     </table>
   </div>
-                      
-  {{$memos->links()}} 
-</div>
+  
+</div>   
+<br>
+{{$memos->links()}}
 </div>
 
 

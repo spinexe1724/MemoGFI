@@ -23,7 +23,7 @@ class MemoController extends Controller
         $isApprover = in_array($user->role, ['gm', 'direksi']);
 
         $memos = $isApprover 
-            ? Memo::with('approvals')->latest()->get() 
+            ? Memo::with('approvals')->latest()->paginate(5) 
             : $user->memos()->with('approvals')->latest()->paginate(5);
             
         return view('memos.index', compact('memos', 'user'));

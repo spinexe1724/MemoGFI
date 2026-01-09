@@ -3,13 +3,12 @@
 @section('title', 'Home Memo System') {{-- title --}}
 
 @section('content') {{-- content section --}}
-<x-app-layout>
-    <x-slot name="header">
+
         <div class="flex justify-between items-center">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">User Management</h2>
             <a href="{{ route('users.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow">+ Create New Account</a>
         </div>
-    </x-slot>
+    
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -45,10 +44,11 @@
                         </tr>
                         @endforeach
                     </tbody>
+                   
                 </table>
             </div>
+            <br>
+            {{$users->links()}}
         </div>
     </div>
-</x-app-layout>
-
 @endsection
