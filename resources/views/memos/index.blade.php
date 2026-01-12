@@ -29,6 +29,8 @@
                 <thead>
                     <tr class="bg-gray-50/50">
                         <th class="px-6 py-4 text-sm font-semibold uppercase tracking-wider text-gray-600">Memo Aktif</th>
+                        <th class="px-6 py-4 text-sm font-semibold uppercase tracking-wider text-gray-600">Pembuat</th>
+                        <th class="px-6 py-4 text-sm font-semibold uppercase tracking-wider text-gray-600">Mengetahui</th>
                         <th class="px-6 py-4 text-sm font-semibold uppercase tracking-wider text-gray-600">Disetujui Oleh</th>
                         <th class="px-6 py-4 text-sm font-semibold uppercase tracking-wider text-gray-600">Status</th>
                         <th class="px-6 py-4 text-sm font-semibold uppercase tracking-wider text-gray-600 text-right">Aksi</th>
@@ -39,7 +41,19 @@
                     @forelse($memos as $memo)
                         @php
                             $isExpired = $memo->valid_until ? \Carbon\Carbon::now()->startOfDay()->gt(\Carbon\Carbon::parse($memo->valid_until)) : false;
-                        @endphp
+                        
+                           $otherApprovers = $memo->approvals->where('id', '!=', $memo->user_id);
+                        
+                        // Logika Mengetahui
+                        $mengetahui = '-';
+                        if ($memo->user->role === 'supervisor') {
+                            $mengetahui = 'GM ' . ($memo->user->division ?? 'Divisi');
+                        } elseif ($memo->user->role === 'gm') {
+                            $mengetahui = $memo->user->name;
+                        } else {
+                            $mengetahui = $memo->user->division;
+                        }
+                            @endphp
                         <tr class="group hover:bg-blue-50/30 transition-all duration-200">
                             <td class="px-6 py-5">
                                 <div class="flex flex-col">
@@ -50,17 +64,32 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-6 py-5">
-                                <div class="flex flex-wrap gap-1 max-w-[200px]">
-                                    @forelse($memo->approvals as $approver)
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded bg-green-50 text-green-700 border border-green-100 text-[9px] font-bold">
-                                            ✔ {{ $approver->name }}
-                                        </span>
-                                    @empty
-                                        <span class="text-gray-400 text-[10px] italic">Menunggu Persetujuan</span>
-                                    @endforelse
-                                </div>
-                            </td>
+                             <td class="px-6 py-5">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-semibold text-gray-700">{{ $memo->user->name }}</span>
+                                <span class="text-[10px] text-gray-500 uppercase tracking-wide">{{ $memo->sender }}</span>
+                            </div>
+                        </td>
+                         <td class="px-6 py-5">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-medium text-gray-600">{{ $mengetahui }}</span>
+                                <span class="text-[10px] text-gray-400 italic">Persetujuan Atasan</span>
+                            </div>
+                        </td>
+                           <td class="px-6 py-5">
+                            <div class="flex flex-wrap gap-1 max-w-[200px]">
+                                @forelse($otherApprovers as $approver)
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100 text-[9px] font-bold" title="{{ strtoupper($approver->role) }}">
+                                        <svg class="w-2 h-2 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        {{ $approver->name }}
+                                    </span>
+                                @empty
+                                    <span class="text-gray-400 text-[10px] italic">Belum ada persetujuan tambahan</span>
+                                @endforelse
+                            </div>
+                        </td>
                             <td class="px-6 py-5">
                                 @if($memo->is_rejected)
                                     <span class="px-2 py-0.5 bg-red-600 text-white text-[10px] font-bold rounded shadow-sm">DITOLAK</span>
