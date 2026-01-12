@@ -44,7 +44,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Dari</label>
-                    <input type="text" name="sender" value="{{ old('sender', Auth::user()->division) }}"  
+                    <input type="text" name="sender" value="{{ old('sender', Auth::user()->division) }}" readonly  
                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none" required>
                 </div>
 
