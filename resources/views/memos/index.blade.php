@@ -66,10 +66,8 @@
                                     <span class="px-2 py-0.5 bg-red-600 text-white text-[10px] font-bold rounded shadow-sm">DITOLAK</span>
                                 @elseif($isExpired)
                                     <span class="px-2 py-0.5 bg-gray-500 text-white text-[10px] font-bold rounded shadow-sm">EXPIRED</span>
-                                @elseif($memo->is_fully_approved)
-                                    <span class="px-2 py-0.5 bg-green-600 text-white text-[10px] font-bold rounded shadow-sm">FINAL</span>
-                                @else
-                                    <span class="px-2 py-0.5 bg-yellow-500 text-white text-[10px] font-bold rounded shadow-sm">PENDING</span>
+                               @else
+                                <span class="px-2.5 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded-lg border border-green-200 uppercase tracking-tight">Aktif</span>
                                 @endif
                             </td>
                             <td class="px-6 py-5 text-right">

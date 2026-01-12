@@ -68,11 +68,12 @@
             <!-- Editor -->
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Isi Pesan Memo</label>
-                                <textarea name="body_text" id="editor">{{ old('body_text') }}</textarea>
+                                <textarea name="body_text" id="editor">                    {{ old('body_text', $memo->body_text) }}
+</textarea>
 
-                <div class="w-full p-6 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 prose prose-blue max-w-none italic">
+                <!-- <div class="w-full p-6 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 prose prose-blue max-w-none italic">
                     {!! $memo->body_text !!}
-                </div>
+                </div> -->
             </div>
 
             <!-- Aksi -->

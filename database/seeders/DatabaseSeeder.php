@@ -22,19 +22,7 @@ class DatabaseSeeder extends Seeder
 
 
     // Akun 5 GM dengan email berbasis nama
-    $gms = [
-        ['name' => 'Tohir Sutanto', 'email' => 'tohir@gfi.co.id'],
-    ];
 
-    foreach ($gms as $gm) {
-        User::create([
-            'name' => $gm['name'],
-            'email' => $gm['email'],
-            'password' => bcrypt('password'),
-            'role' => 'gm',
-            'level' => '3'
-        ]);
-    }
 
     // Akun 5 GM dengan email berbasis nama
     $direksi = [
@@ -49,12 +37,29 @@ class DatabaseSeeder extends Seeder
             'name' => $direk['name'],
             'email' => $direk['email'],
             'password' => bcrypt('password'),
-            'role' => 'gm',
+            'role' => 'direksi',
             'level' => '3'
         ]);
     }
     
-    
+    $gm = [
+        ['name' => 'vicky', 'email' => 'vicky@gfi.co.id','division' => 'HRD'],
+        ['name' => 'roby', 'email' => 'roby@gfi.co.id','division' => 'Remedial'],
+        ['name' => 'stefanus', 'email' => 'stefanus@gfi.co.id','division' => 'Dealer Financing'],
+        ['name' => 'nafsiah', 'email' => 'nafsiah@gfi.co.id','division' => 'Operations'],
+    ];
+
+    foreach ($gm as $gms) {
+        User::create([
+            'name' => $gms['name'],
+            'email' => $gms['email'],
+            'password' => bcrypt('password'),
+            'role' => 'gm',
+            'level' => '2',
+            'division' => $gms['division']
+
+        ]);
+    }
     $div = [
         ['name' => 'Bussiness Support', 'initial' => 'BS'],
         ['name' => 'HRD', 'initial' => 'HR'],
@@ -76,6 +81,7 @@ class DatabaseSeeder extends Seeder
 
     // Akun 5 GM dengan email berbasis nama
     $BS = [
+        
         ['name' => 'Bussiness Support', 'email' => 'bs@gfi.co.id', 'division' => 'Business Support'],
         ['name' => 'SPV Bussiness Support', 'email' => 'spvbs@gfi.co.id', 'division' => 'Business Support'],
         ['name' => 'HR', 'email' => 'hr@gfi.co.id', 'division' => 'HRD'],

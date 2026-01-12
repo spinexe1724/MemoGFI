@@ -22,6 +22,10 @@ class Memo extends Model
     {
         return $this->belongsToMany(User::class, 'memo_approvals')
                                                 ->withTimestamps()
+                 
                                                 ->withPivot('note');
     }
+    protected $casts = [
+    'cc_list' => 'array',
+];
 }

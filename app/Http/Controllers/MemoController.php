@@ -39,12 +39,22 @@ class MemoController extends Controller implements HasMiddleware
        
 
         if ($user->level == 3) {
+
             $memos = Memo::with(['approvals', 'user'])->latest()->paginate(5);
         } elseif ($user->level == 2) {
-            $memos = Memo::whereHas('user', function($query) use ($user) {
-                $query->where('division', $user->division);
-            })->with('approvals')->latest()->paginate(5);
+
+
+            
+            $memos = Memo::where(function($query) use ($user) {
+                // Cek divisi pembuat/pengirim
+                $query->whereHas('user', function($q) use ($user) {
+                    $q->where('division', $user->division);
+                })
+                // ATAU Cek apakah nama divisi user ada di dalam teks cc_list
+                ->orWhere('cc_list', 'like', '%' . $user->division . '%');
+            })->with(['approvals', 'user'])->latest()->paginate(5);
         } else {
+            // Level 1: Hanya melihat memo miliknya sendiri
             $memos = $user->memos()->with('approvals')->latest()->paginate(5);
         }
 
@@ -73,6 +83,7 @@ class MemoController extends Controller implements HasMiddleware
     public function create()
     {
         $user = Auth::user();
+        $divisions = Division::all();
         $allowedRoles = ['supervisor', 'manager', 'gm', 'direksi'];
         
         if (!in_array($user->role, $allowedRoles)) {
@@ -94,7 +105,7 @@ class MemoController extends Controller implements HasMiddleware
         $autoRef = "{$sequence}/MI/{$divCode}/{$monthRoman}/{$year}";
         
         $memo = new Memo();
-        return view('memos.create', compact('autoRef', 'memo'));
+        return view('memos.create', compact('autoRef', 'memo','divisions'));
     }
 
     public function store(Request $request)
@@ -107,8 +118,8 @@ class MemoController extends Controller implements HasMiddleware
             'subject'      => 'required|string',
             'body_text'    => 'required|string',
             'valid_until'  => 'required|date|after_or_equal:today',
-            'cc_list'      => 'nullable|string',
-        ]);
+            'cc_list'      => 'nullable|array',       
+ ]);
 
         $memo = Memo::create([
             'user_id'      => $user->id,
@@ -141,6 +152,9 @@ class MemoController extends Controller implements HasMiddleware
         }, 'user'])->findOrFail($id);
         
         $canView = false;
+              $ccArray = is_array($memo->cc_list) ? $memo->cc_list : [];
+        $isCCed = in_array($user->division, $ccArray);
+
         
         // 1. Superadmin selalu punya akses
         if ($user->role === 'superadmin') {
@@ -151,7 +165,7 @@ class MemoController extends Controller implements HasMiddleware
             $canView = true;
         }
         // 3. Level 2 (Per Divisi)
-        elseif ($user->level == 2 && $memo->user->division == $user->division) {
+           elseif ($user->level == 2 && ($memo->user->division == $user->division || $isCCed)) {
             $canView = true;
         }
         // 4. Pemilik Memo
@@ -189,9 +203,7 @@ class MemoController extends Controller implements HasMiddleware
         }
 
         // Contoh: Jika sudah ada minimal 3 approval (termasuk pembuat), set Final
-        if ($memo->approvals()->count() >= 3) {
-            $memo->update(['is_fully_approved' => true]);
-        }
+       
 
         return redirect()->route('memos.show', $id)->with('success', 'Persetujuan berhasil disimpan.');
     }
@@ -223,8 +235,14 @@ class MemoController extends Controller implements HasMiddleware
     {
         $memo = Memo::with(['approvals', 'user'])->findOrFail($id);
         $isExpired = $memo->valid_until ? Carbon::now()->startOfDay()->gt(Carbon::parse($memo->valid_until)) : false;
-        $status = $isExpired ? 'TIDAK AKTIF' : 'AKTIF';
-
+        if ($memo->is_rejected) {
+            $status = 'DITOLAK';
+        } elseif ($isExpired) {
+            $status = 'KADALUARSA';
+        } else {
+            // Menghapus kondisi 'FINAL', semua yang valid langsung 'AKTIF'
+            $status = 'AKTIF';
+        }
         $pdf = Pdf::loadView('pdf.memo', compact('memo', 'status'))->setPaper('a4', 'portrait');
         $fileName = 'Memo-' . str_replace('/', '-', $memo->reference_no) . '.pdf';
 

@@ -66,7 +66,7 @@ $isExpired = $memo->valid_until ? \Carbon\Carbon::now()->startOfDay()->gt(\Carbo
             <div class="md:col-span-2">
                 <label class="block text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">Tembusan (CC)</label>
                 <div class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700">
-                    {{ $memo->cc_list ?? '-' }}
+                   {{ is_array($memo->cc_list) ? implode(', ', $memo->cc_list) : $memo->cc_list }}
                 </div>
             </div>
             <div class="md:col-span-2">
