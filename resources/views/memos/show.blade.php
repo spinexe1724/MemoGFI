@@ -1,197 +1,229 @@
-@extends('layouts.app') {{-- layout --}}
+@extends('layouts.app')
 
-@section('title', 'Detail Memo - ' . $memo->reference_no)
+@section('title', 'Memo - ' . $memo->reference_no)
 
 @section('content')
-
-<div class="max-w-6xl mx-auto space-y-6">
-<!-- Header Panel -->
-<div class="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
-<div class="bg-red-800 p-6 flex justify-between items-center">
-<div>
-<h2 class="text-2xl font-bold text-white">Detail Memo</h2>
-<p class="text-red-100 text-sm opacity-80">{{ $memo->reference_no }}</p>
-</div>
-<div>
-@php
-$isExpired = $memo->valid_until ? \Carbon\Carbon::now()->startOfDay()->gt(\Carbon\Carbon::parse($memo->valid_until)) : false;
-@endphp
-
-            @if($memo->is_rejected)
-                <span class="px-4 py-2 bg-red-600 text-white rounded-full text-xs font-bold uppercase shadow-lg border border-red-500">Ditolak / Dibatalkan</span>
-            @elseif($isExpired)
-                <span class="px-4 py-2 bg-gray-600 text-white rounded-full text-xs font-bold uppercase shadow-lg border border-gray-500">Kadaluwarsa</span>
-            @elseif($memo->is_fully_approved)
-                <span class="px-4 py-2 bg-green-600 text-white rounded-full text-xs font-bold uppercase shadow-lg border border-green-500">Status: Final</span>
-            @else
-                <span class="px-4 py-2 bg-yellow-500 text-white rounded-full text-xs font-bold uppercase shadow-lg border border-yellow-400 text-shadow-sm">Status: Pending</span>
+<div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    
+    <div class="mb-6 flex items-center justify-between">
+        <a href="{{ route('memos.index') }}" class="inline-flex items-center text-sm font-medium text-gray-500 hover:text-red-700 transition-colors">
+            <i data-lucide="chevron-left" class="w-4 h-4 mr-1"></i>
+            Kembali ke Daftar Memo
+        </a>
+        <div class="flex items-center space-x-3">
+            @if(!$memo->is_rejected)
+                <a href="{{ route('memos.pdf', $memo->id) }}" target="_blank" class="inline-flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-xl shadow-sm hover:bg-gray-50 transition-all">
+                    <i data-lucide="printer" class="w-4 h-4 mr-2 text-gray-400"></i>
+                    Cetak PDF
+                </a>
             @endif
         </div>
     </div>
 
-    <!-- Notifikasi -->
-    @if (session('success'))
-        <div class="bg-green-50 border-l-4 border-green-500 p-4 m-8 mb-0">
-            <p class="text-green-700 font-bold">{{ session('success') }}</p>
-        </div>
-    @endif
-
-    <div class="p-8 space-y-8">
-        <!-- Grid Data Memo -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">Nomor Referensi</label>
-                <div class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium">
-                    {{ $memo->reference_no }}
-                </div>
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">Akhir Berlaku</label>
-                <div class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium {{ $isExpired ? 'text-red-600 font-bold' : '' }}">
-                    {{ $memo->valid_until ? \Carbon\Carbon::parse($memo->valid_until)->format('d F Y') : 'Tanpa Batas Waktu' }}
-                </div>
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">Kepada</label>
-                <div class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700">
-                    {{ $memo->recipient }}
-                </div>
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">Dari (Divisi)</label>
-                <div class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700">
-                    {{ $memo->user->name }} ({{ $memo->sender }})
-                </div>
-            </div>
-            <div class="md:col-span-2">
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">Tembusan (CC)</label>
-                <div class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700">
-                   {{ is_array($memo->cc_list) ? implode(', ', $memo->cc_list) : $memo->cc_list }}
-                </div>
-            </div>
-            <div class="md:col-span-2">
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">Perihal</label>
-                <div class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 font-bold text-lg">
-                    {{ $memo->subject }}
-                </div>
-            </div>
-        </div>
-
-        <!-- Isi Memo -->
-        <div>
-            <label class="block text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">Isi Pesan Memo</label>
-            <div class="w-full p-8 bg-white border border-gray-200 rounded-2xl text-gray-700 prose prose-blue max-w-none shadow-inner min-h-[200px]">
-                {!! nl2br($memo->body_text) !!}
-            </div>
-        </div>
-
-        <!-- DAFTAR PERSETUJUAN & CATATAN -->
-        <div class="pt-6">
-            <h3 class="text-sm font-bold text-gray-800 uppercase tracking-widest mb-4 flex items-center">
-                <span class="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mr-2">
-                    <i data-lucide="check-square" class="w-4 h-4"></i>
-                </span>
-                Riwayat Persetujuan Digital
-            </h3>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <div class="lg:col-span-4 space-y-6 lg:sticky lg:top-8">
             
-            <div class="overflow-hidden border border-gray-100 rounded-xl shadow-sm">
-                <table class="w-full text-left">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase">Penyetuju</th>
-                            <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase">Jabatan</th>
-                            <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase">Waktu</th>
-                            <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase">Catatan (Note)</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-50">
-                        @forelse($memo->approvals as $approver)
-                            <tr class="hover:bg-blue-50/30 transition-colors">
-                                <td class="px-4 py-3 text-sm font-bold text-gray-800">{{ $approver->name }}</td>
-                                <td class="px-4 py-3 text-[10px] uppercase font-semibold text-gray-500">{{ $approver->role }}</td>
-                                <td class="px-4 py-3 text-[10px] text-gray-400 italic">
-                                    {{ \Carbon\Carbon::parse($approver->pivot->created_at)->format('d/m/y H:i') }}
-                                </td>
-                                <td class="px-4 py-3 text-xs text-blue-600 font-medium">
-                                    {{ $approver->pivot->note ?? '-' }}
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="4" class="px-4 py-8 text-center text-gray-400 italic text-sm">Belum ada persetujuan digital yang tercatat.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Status Dokumen</h3>
+                @php
+                    $isExpired = $memo->valid_until ? \Carbon\Carbon::now()->startOfDay()->gt(\Carbon\Carbon::parse($memo->valid_until)) : false;
+                @endphp
+
+                <div class="flex flex-col space-y-4">
+                    @if($memo->is_rejected)
+                        <div class="flex items-center p-3 bg-red-50 border border-red-100 rounded-2xl">
+                            <div class="bg-red-500 p-2 rounded-xl text-white mr-3">
+                                <i data-lucide="x-circle" class="w-5 h-5"></i>
+                            </div>
+                            <span class="text-red-700 font-extrabold text-sm uppercase">Dibatalkan</span>
+                        </div>
+                    @elseif($isExpired)
+                        <div class="flex items-center p-3 bg-gray-50 border border-gray-100 rounded-2xl">
+                            <div class="bg-gray-500 p-2 rounded-xl text-white mr-3">
+                                <i data-lucide="clock" class="w-5 h-5"></i>
+                            </div>
+                            <span class="text-gray-700 font-extrabold text-sm uppercase">Kadaluwarsa</span>
+                        </div>
+                    @elseif($memo->is_fully_approved)
+                        <div class="flex items-center p-3 bg-green-50 border border-green-100 rounded-2xl">
+                            <div class="bg-green-500 p-2 rounded-xl text-white mr-3">
+                                <i data-lucide="check-check" class="w-5 h-5"></i>
+                            </div>
+                            <span class="text-green-700 font-extrabold text-sm uppercase">Final / Approved</span>
+                        </div>
+                    @else
+                        <div class="flex items-center p-3 bg-amber-50 border border-amber-100 rounded-2xl">
+                            <div class="bg-amber-500 p-2 rounded-xl text-white mr-3">
+                                <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
+                            </div>
+                            <span class="text-amber-700 font-extrabold text-sm uppercase">Menunggu Review</span>
+                        </div>
+                    @endif
+                </div>
             </div>
-        </div>
 
-        <!-- Tombol Navigasi & Aksi -->
-        <div class="flex flex-wrap items-center justify-between gap-4 pt-8 border-t border-gray-100">
-            <a href="{{ route('memos.index') }}" class="inline-flex items-center px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-xl transition-all">
-                <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
-                Kembali ke Daftar
-            </a>
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 divide-y divide-gray-50">
+                <div class="p-6">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Meta Informasi</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-500">No. Ref</span>
+                            <span class="text-sm font-mono font-bold text-gray-800">{{ $memo->reference_no }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-500">Tgl Dibuat</span>
+                            <span class="text-sm font-medium text-gray-800">{{ $memo->created_at->format('d M Y, H:i') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-500">Berlaku S/D</span>
+                            <span class="text-sm font-medium {{ $isExpired ? 'text-red-600' : 'text-gray-800' }}">
+                                {{ $memo->valid_until ? \Carbon\Carbon::parse($memo->valid_until)->format('d M Y') : '∞' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Tembusan (CC)</h3>
+                    <div class="flex flex-wrap gap-2">
+                        @php $ccItems = is_array($memo->cc_list) ? $memo->cc_list : explode(',', $memo->cc_list); @endphp
+                        @foreach($ccItems as $cc)
+                            @if(trim($cc))
+                                <span class="bg-gray-100 text-gray-600 px-3 py-1 rounded-lg text-xs font-medium border border-gray-200">
+                                    {{ trim($cc) }}
+                                </span>
+                            @endif
+                        @endforeach
+                    </div>
+                </div>
+            </div>
 
-            <div class="flex items-center space-x-3">
-                {{-- Aksi Approval Khusus GM/Direksi --}}
-                @if(in_array(Auth::user()->role, ['gm', 'direksi']) && !$memo->is_rejected && !$memo->is_fully_approved)
-                    @if(!$memo->approvals->contains('id', Auth::id()))
-                        <form action="{{ route('memos.reject', $memo->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin MENOLAK memo ini?')">
+            @if(in_array(Auth::user()->role, ['gm', 'direksi']) && !$memo->is_rejected && !$memo->is_fully_approved && !$memo->approvals->contains('id', Auth::id()))
+                <div class="bg-gradient-to-br from-blue-700 to-indigo-800 rounded-3xl shadow-xl p-6 text-black">
+                    <h3 class="text-lg font-bold mb-2 flex items-center">
+                        <i data-lucide="shield-alert" class="w-5 h-5 mr-2 text-blue-300"></i>
+                        Butuh Approval
+                    </h3>
+                    <p class="text-black-100 text-sm mb-6 opacity-80">Anda memiliki otoritas untuk menyetujui atau menolak memo ini.</p>
+                    <div class="grid grid-cols-1 gap-3">
+                        <button onclick="confirmApprove({{ $memo->id }})" class="w-full bg-white text-black-800 font-bold py-3 rounded-2xl hover:bg-blue-50 transition-all flex items-center justify-center">
+                            <i data-lucide="check-circle" class="w-4 h-4 mr-2"></i> Approve Sekarang
+                        </button>
+                        <form action="{{ route('memos.reject', $memo->id) }}" method="POST" onsubmit="return confirm('Tolak memo ini?')">
                             @csrf
-                            <button type="submit" class="px-6 py-3 bg-red-100 text-red-600 hover:bg-red-600 hover:text-white font-bold rounded-xl transition-all border border-red-200">
-                                Reject Memo
+                            <button type="submit" class="w-full bg-red-900/40 text-blue-100 font-bold py-3 rounded-2xl hover:bg-blue-600 hover:text-white transition-all">
+                                Reject Dokumen
                             </button>
                         </form>
+                    </div>
+                </div>
+            @endif
+        </div>
 
-                        <button type="button" onclick="confirmApprove({{ $memo->id }})" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 transition-all transform active:scale-95 flex items-center">
-                            <i data-lucide="check-circle" class="w-4 h-4 mr-2"></i>
-                            Berikan Persetujuan
-                        </button>
+        <div class="lg:col-span-8 space-y-8">
+            
+            <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden relative">
+                <div class="h-2 w-full bg-red-800"></div>
 
-                        {{-- Form Hidden untuk Approval via SweetAlert --}}
-                        <form id="approve-form-{{ $memo->id }}" action="{{ route('memos.approve', $memo->id) }}" method="POST" style="display:none;">
-                            @csrf
-                            <input type="hidden" name="note" id="note-input-{{ $memo->id }}">
-                        </form>
-                    @endif
-                @endif
+                <div class="p-8 md:p-12">
+                    <div class="flex justify-between items-start mb-10 pb-8 border-b border-gray-100">
+                        <div class="space-y-1">
+                            <h1 class="text-3xl font-black text-gray-900 tracking-tighter uppercase italic">INTERNAL <span class="text-red-800 tracking-normal">MEMO</span></h1>
+                            <p class="text-xs font-bold text-gray-400 tracking-widest uppercase">E-Memo Management System</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="inline-block p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                <i data-lucide="file-text" class="w-8 h-8 text-red-800"></i>
+                            </div>
+                        </div>
+                    </div>
 
-                @if(!$memo->is_rejected)
-                    <a href="{{ route('memos.pdf', $memo->id) }}" target="_blank" class="inline-flex items-center px-6 py-3 bg-red-700 hover:bg-red-800 text-white font-bold rounded-xl shadow-lg shadow-red-100 transition-all">
-                        <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
-                        Download PDF
-                    </a>
-                @endif
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                        <div class="space-y-1">
+                            <span class="text-[10px] font-bold text-red-800 uppercase tracking-[0.2em]">Kepada</span>
+                            <p class="text-lg font-extrabold text-gray-800">{{ $memo->recipient }}</p>
+                        </div>
+                        <div class="space-y-1 md:text-right">
+                            <span class="text-[10px] font-bold text-red-800 uppercase tracking-[0.2em]">Dari</span>
+                            <p class="text-lg font-extrabold text-gray-800">{{ $memo->user->name }}</p>
+                            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">{{ $memo->sender }}</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50/50 rounded-2xl p-6 mb-12 border border-gray-100/50">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] block mb-2 text-center">Perihal / Subjek</span>
+                        <h2 class="text-xl md:text-2xl font-black text-gray-900 text-center leading-tight uppercase">
+                            "{{ $memo->subject }}"
+                        </h2>
+                    </div>
+
+                    <div class="prose prose-lg max-w-none text-gray-700 leading-relaxed mb-16 px-2 min-h-[300px]">
+                        {!! nl2br($memo->body_text) !!}
+                    </div>
+
+                    <div class="border-t-2 border-dashed border-gray-100 pt-12">
+                        <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-8 text-center italic">Digital Signature Verified</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            @foreach($memo->approvals as $approver)
+                            <div class="relative p-6 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col items-center">
+                                <i data-lucide="check-circle" class="absolute -right-2 -bottom-2 w-16 h-16 text-green-500/5"></i>
+                                
+                                <span class="text-[10px] font-bold text-green-600 uppercase tracking-widest mb-4">Digitally Signed By:</span>
+                                <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black mb-3">
+                                    {{ substr($approver->name, 0, 1) }}
+                                </div>
+                                <h4 class="font-bold text-gray-800 text-sm text-center line-clamp-1">{{ $approver->name }}</h4>
+                                <p class="text-[10px] font-bold text-gray-400 uppercase">{{ $approver->role }}</p>
+                                <div class="mt-4 pt-4 border-t border-gray-50 w-full text-center">
+                                    <p class="text-[9px] font-mono text-gray-400 tracking-tighter">{{ \Carbon\Carbon::parse($approver->pivot->created_at)->format('d/m/y H:i:s') }}</p>
+                                    @if($approver->pivot->note)
+                                        <p class="mt-2 text-[10px] text-blue-600 italic leading-snug">"{{ $approver->pivot->note }}"</p>
+                                    @endif
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-center text-gray-400 text-[10px] font-bold uppercase tracking-widest space-x-4">
+                <span>E-Memo ID: {{ $memo->id }}</span>
+                <span>•</span>
+                <span>Hash ID: {{ md5($memo->id . $memo->reference_no) }}</span>
             </div>
         </div>
     </div>
 </div>
 
-
-</div>
-
-<!-- Scripts -->
+<form id="approve-form-{{ $memo->id }}" action="{{ route('memos.approve', $memo->id) }}" method="POST" style="display:none;">
+    @csrf
+    <input type="hidden" name="note" id="note-input-{{ $memo->id }}">
+</form>
 
 <script src="https://unpkg.com/lucide@latest"></script>
-
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <script>
-lucide.createIcons();
+    lucide.createIcons();
 
-function confirmApprove(memoId) {
-      Swal.fire({
+    function confirmApprove(memoId) {
+        Swal.fire({
             title: 'Konfirmasi Persetujuan',
-            text: "Tambahkan catatan jika diperlukan (opsional):",
+            text: "Tambahkan catatan instruksi jika ada:",
             input: 'textarea',
-            inputPlaceholder: 'Tulis catatan di sini...',
+            inputPlaceholder: 'Contoh: Lanjutkan ke tahap pembayaran...',
             icon: 'info',
             showCancelButton: true,
-            confirmButtonColor: '#2563eb',
-            cancelButtonColor: '#dc2626',
-            confirmButtonText: 'Ya, Approve!',
-            cancelButtonText: 'Batal'
+            confirmButtonColor: '#1e40af', // Blue 800
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: '<i class="inline-block mr-2" data-lucide="check"></i> Approve',
+            cancelButtonText: 'Batal',
+            customClass: {
+                popup: 'rounded-[2rem]',
+                confirmButton: 'rounded-xl px-6 py-3 font-bold',
+                cancelButton: 'rounded-xl px-6 py-3 font-bold'
+            }
         }).then((result) => {
             if (result.isConfirmed) {
                 const form = document.getElementById('approve-form-' + memoId);
@@ -202,9 +234,15 @@ function confirmApprove(memoId) {
                 }
             }
         });
-}
-
-
+    }
 </script>
 
+<style>
+    /* Styling khusus agar badan memo tidak kaku */
+    .prose p {
+        margin-bottom: 1.25em;
+        line-height: 1.8;
+        color: #374151; /* gray-700 */
+    }
+</style>
 @endsection
