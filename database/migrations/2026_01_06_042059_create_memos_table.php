@@ -19,10 +19,12 @@ return new class extends Migration
     $table->string('sender');
     $table->text('cc_list')->nullable();
     $table->string('subject');
+    $table->boolean('is_draft')->default(true);
     $table->text('body_text');
     $table->date('valid_until')->nullable();
     $table->boolean('is_fully_approved')->default(false);
     $table->boolean('is_rejected')->default(false);
+    
     $table->timestamps();
 });
     }

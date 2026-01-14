@@ -13,26 +13,39 @@
             <p class="text-gray-500 mt-1">Kelola dan pantau seluruh sirkulasi memo internal di sini.</p>
         </div>
         
-        @if(in_array(Auth::user()->role, ['supervisor', 'gm']))
-            <a href="{{ route('memos.create') }}" class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-black font-bold rounded-2xl shadow-lg shadow-green-100 transition-all transform hover:-translate-y-1 active:scale-95">
+        @if(in_array(Auth::user()->role, ['supervisor', 'manager', 'gm', 'direksi']))
+            <a href="{{ route('memos.create') }}" class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold rounded-2xl shadow-lg shadow-green-100 transition-all transform hover:-translate-y-1 active:scale-95">
                 <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>
                 Buat Memo Baru
             </a>
         @endif
     </div>
 
+    {{-- Dashboard Stats --}}
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div class="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex items-center space-x-4">
             <div class="p-4 bg-blue-50 rounded-2xl text-blue-600"><i data-lucide="file-text"></i></div>
-            <div><p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Memo</p><p class="text-2xl font-black text-gray-800">{{ $memos->count() }}</p></div>
+            <div>
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Memo</p>
+                <p class="text-2xl font-black text-gray-800">{{ $memos->count() }}</p>
+            </div>
         </div>
         <div class="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex items-center space-x-4">
             <div class="p-4 bg-amber-50 rounded-2xl text-amber-600"><i data-lucide="clock"></i></div>
-            <div><p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Pending Review</p><p class="text-2xl font-black text-gray-800">{{ $memos->where('is_fully_approved', false)->where('is_rejected', false)->count() }}</p></div>
+            <div>
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Pending Review</p>
+                <p class="text-2xl font-black text-gray-800">
+                    {{-- Menghitung memo yang sudah terbit tapi belum FINAL (berdasarkan is_final di model) --}}
+                    {{ $memos->filter(fn($m) => !$m->is_final && !$m->is_draft && !$m->is_rejected)->count() }}
+                </p>
+            </div>
         </div>
         <div class="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex items-center space-x-4">
             <div class="p-4 bg-red-50 rounded-2xl text-red-600"><i data-lucide="alert-circle"></i></div>
-            <div><p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Expired/Rejected</p><p class="text-2xl font-black text-gray-800">{{ $memos->where('is_rejected', true)->count() }}</p></div>
+            <div>
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Expired/Rejected</p>
+                <p class="text-2xl font-black text-gray-800">{{ $memos->where('is_rejected', true)->count() }}</p>
+            </div>
         </div>
     </div>
 
@@ -51,101 +64,111 @@
                         <th class="pb-4 font-black text-center w-10">ID</th>
                         <th class="pb-4 font-black">Memo Aktif</th>
                         <th class="pb-4 font-black">Pembuat</th>
-                        <th class="pb-4 font-black">Mengetahui</th>
+                        <th class="pb-4 font-black">Penyetuju</th>
                         <th class="pb-4 font-black">Status</th>
                         <th class="pb-4 font-black text-right">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
                     @foreach($memos as $memo)
-                    
-                    @php
-                        $isExpired = $memo->valid_until ? \Carbon\Carbon::now()->startOfDay()->gt(\Carbon\Carbon::parse($memo->valid_until)) : false;
-                        $otherApprovers = $memo->approvals->where('id', '!=', $memo->user_id);
-                        $mengetahui = '-';
+                        @php
+                            $isExpired = $memo->valid_until ? \Carbon\Carbon::now()->startOfDay()->gt(\Carbon\Carbon::parse($memo->valid_until)) : false;
+                            
+                            // Logika Mengetahui: Menampilkan Manager yang dipilih (approver) atau Otoritas Divisi
+                            $mengetahui = '-';
+                            if ($memo->user->role === 'supervisor') {
+                                // Menampilkan nama Manager yang dipilih oleh Supervisor
+                                $mengetahui = 'Manager ' . $memo->approver->division ?? 'Manager Belum Dipilih';
+                            } elseif (in_array($memo->user->role, ['gm', 'direksi'])) {
+                                $mengetahui = 'Otoritas Mandiri';
+                            } else {
+                                $mengetahui = 'Manager ' . ($memo->user->division ?? 'Divisi');
+                            }
 
-if ($memo->user->role === 'supervisor') {
+                            // Logika Target Approval (Threshold Baru: Supervisor 5, Manager 4)
+                            $target = 5;
+                            if ($memo->user->role === 'supervisor') $target = 5;
+                            elseif ($memo->user->role === 'manager') $target = 4;
+                            elseif (in_array($memo->user->role, ['gm', 'direksi'])) $target = 2;
 
-    $mengetahui = 'GM ' . ($memo->user->division ?? 'Divisi');
-
-} elseif ($memo->user->role === 'gm') {
-
-    $mengetahui = $memo->user->name;
-
-} else {
-
-    $mengetahui = $memo->user->division;
-
-}                   
-
-                    @endphp
-                    <tr class="hover:bg-gray-50/80 transition-colors group">
-                        <td class="py-6 text-center text-gray-400 font-mono text-xs">#{{ $memo->id }}</td>
-                        <td class="py-6">
-                            <div class="flex flex-col">
-                                <span class="font-extrabold text-gray-900 group-hover:text-blue-700 transition-colors">{{ $memo->subject }}</span>
-                                <span class="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wider">{{ $memo->reference_no }}</span>
-                                <div class="mt-2 flex items-center text-[10px]">
-                                    <i data-lucide="calendar" class="w-3 h-3 mr-1 text-gray-300"></i>
-                                    <span class="{{ $isExpired ? 'text-red-500 font-bold' : 'text-gray-400 font-medium' }}">
-                                        Exp: {{ $memo->valid_until ? \Carbon\Carbon::parse($memo->valid_until)->format('d M Y') : '∞' }}
-                                    </span>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="py-6">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-8 h-8 rounded-full bg-red-50 text-red-700 flex items-center justify-center font-bold text-xs border border-red-100">
-                                    {{ substr($memo->user->name, 0, 1) }}
-                                </div>
+                            $currentSignCount = $memo->approvals->count();
+                        @endphp
+                        <tr class="hover:bg-gray-50/80 transition-colors group">
+                            <td class="py-6 text-center text-gray-400 font-mono text-xs">#{{ $memo->id }}</td>
+                            <td class="py-6">
                                 <div class="flex flex-col">
-                                    <span class="text-sm font-bold text-gray-700">{{ $memo->user->name }}</span>
-                                    <span class="text-[9px] text-gray-400 uppercase font-black">{{ $memo->sender }}</span>
+                                    <span class="font-extrabold text-gray-900 group-hover:text-blue-700 transition-colors">{{ $memo->subject }}</span>
+                                    <span class="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wider">{{ $memo->reference_no }}</span>
+                                    <div class="mt-2 flex items-center text-[10px]">
+                                        <i data-lucide="calendar" class="w-3 h-3 mr-1 text-gray-300"></i>
+                                        <span class="{{ $isExpired ? 'text-red-500 font-bold' : 'text-gray-400 font-medium' }}">
+                                            Exp: {{ $memo->valid_until ? \Carbon\Carbon::parse($memo->valid_until)->format('d M Y') : '∞' }}
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
-                        </td>
-                        <td class="py-6">
-                        {{ $mengetahui }}
-                        </td>
-                        <td class="py-6">
-                            <div class="flex flex-col space-y-2">
-                                @if($memo->is_rejected)
-                                    <span class="w-fit px-2 py-0.5 bg-red-100 text-red-700 text-[9px] font-black rounded-md border border-red-200 uppercase tracking-tighter italic">Rejected</span>
-                                @elseif($memo->is_fully_approved)
-                                    <span class="w-fit px-2 py-0.5 bg-green-100 text-green-700 text-[9px] font-black rounded-md border border-green-200 uppercase tracking-tighter">Final Approved</span>
-                                @else
-                                    <span class="w-fit px-2 py-0.5 bg-amber-100 text-amber-700 text-[9px] font-black rounded-md border border-amber-200 uppercase tracking-tighter animate-pulse">On Process</span>
-                                @endif
-
-                                <div class="flex -space-x-1 overflow-hidden">
-                                    @foreach($otherApprovers as $approver)
-                                        <div class="inline-block h-5 w-5 rounded-full ring-2 ring-white bg-blue-600 text-[8px] text-white flex items-center justify-center font-bold" title="{{ $approver->name }}">
-                                            {{ substr($approver->name, 0, 5) }}
-                                        </div>
-                                    @endforeach
+                            </td>
+                            <td class="py-6">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 rounded-full bg-red-50 text-red-700 flex items-center justify-center font-bold text-xs border border-red-100">
+                                        {{ substr($memo->user->name, 0, 1) }}
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-sm font-bold text-gray-700">{{ $memo->user->name }}</span>
+                                        <span class="text-[9px] text-gray-400 uppercase font-black">{{ $memo->sender }}</span>
+                                    </div>
                                 </div>
-                            </div>
-                        </td>
-                        <td class="py-6 text-right">
-                            <div class="flex items-center justify-end space-x-2">
-                                <a href="{{ route('memos.show', $memo->id) }}" class="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-blue-600 hover:border-blue-200 hover:shadow-sm transition-all" title="Detail">
-                                    <i data-lucide="external-link" class="w-4 h-4"></i>
-                                </a>
-                                
-                                @if(!$memo->is_rejected)
-                                    <a href="{{ route('memos.pdf', $memo->id) }}" target="_blank" class="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-red-600 hover:border-red-200 transition-all" title="View PDF">
-                                        <i data-lucide="file-text" class="w-4 h-4"></i>
+                            </td>
+                            <td class="py-6 text-sm text-red-800 font-bold">
+                                {{ $mengetahui }}
+                            </td>
+                            <td class="py-6">
+                                <div class="flex flex-col items-start gap-1">
+                                    @if($memo->is_draft)
+                                        <span class="px-2.5 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-lg border border-amber-200 uppercase">Draf</span>
+                                    @elseif($memo->is_rejected)
+                                        <span class="px-2.5 py-1 bg-red-100 text-red-700 text-[10px] font-bold rounded-lg border border-red-200 uppercase">Ditolak</span>
+                                    @elseif($isExpired)
+                                        <span class="px-2.5 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold rounded-lg border border-gray-200 uppercase">Kadaluarsa</span>
+                                    @elseif($memo->is_final)
+                                        <span class="px-2.5 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded-lg border border-green-200 uppercase">Aktif</span>
+                                    @else
+                                        {{-- Logika Pending dengan Progress Sign --}}
+                                        <span class="px-2.5 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-lg border border-blue-200 uppercase text-center">Pending</span>
+                                        <span class="text-[9px] text-gray-400 font-bold italic tracking-tighter text-center w-full">
+                                            {{ $currentSignCount }} / {{ $target }} Signatures
+                                        </span>
+                                    @endif
+                                    
+                                    {{-- Avatar kecil untuk para penyetuju --}}
+                                    <div class="flex -space-x-1 mt-1 overflow-hidden">
+                                        @foreach($memo->approvals as $approver)
+                                            <div class="inline-block h-5 w-5 rounded-full ring-2 ring-white bg-blue-600 text-[8px] text-white flex items-center justify-center font-bold" title="{{ $approver->name }}">
+                                                {{ substr($approver->name, 0, 2) }}
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-6 text-right">
+                                <div class="flex items-center justify-end space-x-2">
+                                    <a href="{{ route('memos.show', $memo->id) }}" class="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-blue-600 hover:border-blue-200 hover:shadow-sm transition-all" title="Detail">
+                                        <i data-lucide="external-link" class="w-4 h-4"></i>
                                     </a>
-                                @endif
+                                    
+                                    @if(!$memo->is_rejected)
+                                        <a href="{{ route('memos.pdf', $memo->id) }}" target="_blank" class="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-red-600 hover:border-red-200 transition-all" title="View PDF">
+                                            <i data-lucide="file-text" class="w-4 h-4"></i>
+                                        </a>
+                                    @endif
 
-                                @if(Auth::id() == $memo->user_id && $memo->approvals->count() <= 1 && !$memo->is_rejected)
-                                    <a href="{{ route('memos.edit', $memo->id) }}" class="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-amber-600 hover:border-amber-200 transition-all" title="Edit">
-                                        <i data-lucide="edit-3" class="w-4 h-4"></i>
-                                    </a>
-                                @endif
-                            </div>
-                        </td>
-                    </tr>
+                                    @if(Auth::id() == $memo->user_id && $memo->approvals->count() <= 1 && !$memo->is_rejected)
+                                        <a href="{{ route('memos.edit', $memo->id) }}" class="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-amber-600 hover:border-amber-200 transition-all" title="Edit">
+                                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                        </a>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
                     @endforeach
                 </tbody>
             </table>
@@ -176,8 +199,8 @@ if ($memo->user->role === 'supervisor') {
                 lengthMenu: "Tampilkan _MENU_",
                 info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ memo",
                 paginate: {
-                    next: '<i class="lucide-chevron-right"></i>',
-                    previous: '<i class="lucide-chevron-left"></i>'
+                    next: '<i class="lucide-chevron-right w-4 h-4"></i>',
+                    previous: '<i class="lucide-chevron-left w-4 h-4"></i>'
                 }
             },
             dom: '<"flex flex-col md:flex-row justify-between items-center mb-6 gap-4"f l>rt<"flex flex-col md:flex-row justify-between items-center mt-6 gap-4"i p>',

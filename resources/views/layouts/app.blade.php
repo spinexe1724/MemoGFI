@@ -9,57 +9,64 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
     
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
     <style>
-        /* Custom Scrollbar untuk Sidebar */
-        #sidebar::-webkit-scrollbar {
-            width: 4px;
-        }
-        #sidebar::-webkit-scrollbar-thumb {
-            background: #e5e7eb;
-            border-radius: 10px;
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-            background: #b91c1c !important; /* red-700 */
-            color: white !important;
-            border-radius: 8px !important;
+        #sidebar::-webkit-scrollbar { width: 4px; }
+        #sidebar::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+        .nav-link-active { 
+            @apply bg-red-50 text-red-700 font-bold border border-red-100/50 shadow-sm shadow-red-100/50;
         }
     </style>
-    @stack('styles')
 </head>
 <body class="bg-gray-50 font-sans text-gray-900">
 
-    <aside id="sidebar" class="fixed top-0 left-0 z-50 w-68 h-screen transition-transform -translate-x-full sm:translate-x-0 bg-white border-r border-gray-100 shadow-sm overflow-y-auto">
+    <aside id="sidebar" class="fixed top-0 left-0 z-50 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 bg-white border-r border-gray-100 shadow-sm overflow-y-auto">
         
         <div class="sticky top-0 bg-white z-10 px-6 py-8">
             <div class="flex items-center justify-center p-2 rounded-2xl bg-gray-50 border border-gray-100 shadow-inner">
-                <img src="{{ asset('images/Capture.PNG') }}" class="h-12 w-auto object-contain" alt="Logo Gratama" />
+                <img src="{{ asset('images/Capture.PNG') }}" class="h-12 w-auto object-contain" alt="Logo" />
             </div>
         </div>
 
         <nav class="px-4 pb-6 space-y-6">
-            
+            {{-- Menu Utama --}}
             <div>
                 <p class="px-4 mb-3 text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Menu Utama</p>
                 <div class="space-y-1">
-                    <a href="{{ route('memos.index') }}" class="flex items-center px-4 py-3 text-red-700 rounded-xl bg-red-50 font-bold border border-red-100/50 transition-all duration-200 group shadow-sm shadow-red-100/50">
+                    {{-- Dashboard --}}
+                    <a href="{{ route('memos.index') }}" 
+                       class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('memos.index') ? 'bg-red-50 text-red-700 font-bold border border-red-100/50 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
                         <i data-lucide="layout-grid" class="w-5 h-5 mr-3 transition-transform group-hover:scale-110"></i>
                         <span>Dashboard</span>
                     </a>
 
-                    <a href="#" class="flex items-center px-4 py-3 text-gray-500 rounded-xl hover:bg-gray-50 hover:text-gray-900 transition-all duration-200 group">
+                    {{-- Memo Saya (Aktif) --}}
+                    <a href="{{ route('memos.my_memos') }}" 
+                       class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('memos.my_memos') ? 'bg-red-50 text-red-700 font-bold border border-red-100/50 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
                         <i data-lucide="mail" class="w-5 h-5 mr-3 transition-transform group-hover:scale-110"></i>
                         <span>Memo Saya</span>
+                    </a>
+
+                    {{-- Memo Draf --}}
+                    <a href="{{ route('memos.drafts') }}" 
+                       class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('memos.drafts') ? 'bg-red-50 text-red-700 font-bold border border-red-100/50 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
+                        <i data-lucide="archive" class="w-5 h-5 mr-3 transition-transform group-hover:scale-110"></i>
+                        <span>Memo Draf</span>
+                        @php
+                            $draftCount = \App\Models\Memo::where('user_id', Auth::id())->where('is_draft', true)->count();
+                        @endphp
+                        @if($draftCount > 0)
+                            <span class="ml-auto bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold">{{ $draftCount }}</span>
+                        @endif
                     </a>
                 </div>
             </div>
 
+            {{-- Bagian Sistem --}}
             <div>
                 <p class="px-4 mb-3 text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Sistem</p>
                 <div class="space-y-1">
@@ -72,7 +79,6 @@
                     </form>
                 </div>
             </div>
-
         </nav>
 
         <div class="absolute bottom-6 left-0 w-full px-8">
@@ -83,8 +89,7 @@
         </div>
     </aside>
 
-    <div class="sm:ml-68 min-h-screen flex flex-col">
-        
+    <div class="sm:ml-64 min-h-screen flex flex-col">
         <nav class="sticky top-0 z-40 flex items-center justify-between px-6 py-4 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">
             <div class="flex items-center">
                 <button onclick="toggleSidebar()" class="p-2 mr-3 text-gray-600 rounded-xl sm:hidden hover:bg-gray-100 transition-colors">
@@ -98,8 +103,8 @@
             <div class="flex items-center space-x-4">
                 <div class="hidden md:flex flex-col text-right mr-1">
                     <p class="text-sm font-black text-gray-900 leading-none"> {{ Auth::user()->name }} </p>
-                    <p class="text-[10px] font-bold text-red-600 mt-1 uppercase tracking-tighter tracking-widest">
-                         {{ Auth::user()->role }} 
+                    <p class="text-[10px] font-bold text-red-600 mt-1 uppercase tracking-widest italic">
+                         {{ Auth::user()->role }} - {{ Auth::user()->division }} 
                     </p>
                 </div>
                 
@@ -113,30 +118,20 @@
             </div>
         </nav>
 
-        <main class="flex-grow">
+        <main class="flex-grow p-6">
             @yield('content')
         </main>
 
         <footer class="p-6 text-center text-gray-400 text-[11px] font-medium border-t border-gray-100">
-            &copy; 2026 PT. Gratama. All rights reserved.
+            &copy; {{ date('Y') }} PT. Gratama. All rights reserved.
         </footer>
     </div>
 
     <script>
-        // Inisialisasi Lucide Icons
         lucide.createIcons();
-
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.toggle('-translate-x-full');
-        }
-
-        // Dropdown Toggle (Opsional jika dibutuhkan nanti)
-        function toggleDropdown(id) {
-            const element = document.getElementById(id);
-            const arrow = document.getElementById('arrow-' + id);
-            element.classList.toggle('hidden');
-            if(arrow) arrow.classList.toggle('rotate-180');
         }
     </script>
     @stack('scripts')

@@ -45,6 +45,13 @@
                     <p class="text-[10px] text-gray-400 mt-1 italic">* Status otomatis TIDAK AKTIF setelah tanggal ini.</p>
                 </div>
 
+                <!-- Perihal (Dipindah ke baris atas agar row tetap penuh) -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Perihal / Subjek</label>
+                    <input type="text" name="subject" value="{{ old('subject') }}" placeholder="Contoh: Kegiatan Operasional HO..." 
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all outline-none" required>
+                </div>
+
                 <!-- Baris 2: Kepada & Dari -->
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Kepada</label>
@@ -58,26 +65,34 @@
                            class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-500 outline-none" required>
                 </div>
 
-                <!-- Baris 3: Cc (Multi-Select synchronized from Canvas) -->
-                <div class="md:col-span-1">
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Tembusan (CC Divisi)</label>
-                    <select name="cc_list[]" id="cc_select" class="w-full" multiple="multiple">
-                                                <option value="all">All</option>
-
-                        @foreach($divisions as $div)
-                            <option value="{{ $div->name }}" {{ (is_array(old('cc_list')) && in_array($div->name, old('cc_list'))) ? 'selected' : '' }}>
-                                {{ $div->initial }}
+                <!-- Field Menyetujui (Khusus Supervisor) -->
+                @if(Auth::user()->role === 'supervisor')
+                <div id="approver_field">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2 italic text-red-700">Menyetujui (Manager Divisi)</label>
+                    <select name="approver_id" class="w-full border border-gray-300 rounded-lg shadow-sm focus:ring-red-500 focus:border-red-500 p-2.5" required>
+                        <option value="">-- Pilih Manager Penyetuju --</option>
+                        @foreach($managers as $manager)
+                            <option value="{{ $manager->id }}">
+                                {{ $manager->name }} - ({{ $manager->division }})
                             </option>
                         @endforeach
                     </select>
-                    <p class="text-[10px] text-gray-400 mt-1 italic">* Divisi terpilih dapat memantau memo ini.</p>
+                    <p class="text-[10px] text-gray-400 mt-1">* Wajib diisi oleh Supervisor untuk diteruskan ke Manager.</p>
                 </div>
+                @endif
 
-                <!-- Perihal -->
-                <div class="md:col-span-1">
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Perihal / Subjek</label>
-                    <input type="text" name="subject" value="{{ old('subject') }}" placeholder="Contoh: Kegiatan Operasional HO di Hari Sabtu" 
-                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all outline-none" required>
+                <!-- Baris 3: Tembusan (CC) -->
+                <div class="md:col-span-3">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Tembusan (CC Divisi)</label>
+                    <select name="cc_list[]" id="cc_select" class="w-full" multiple="multiple">
+                        <option value="all">-- Pilih Semua Divisi --</option>
+                        @foreach($divisions as $div)
+                            <option value="{{ $div->name }}" {{ (is_array(old('cc_list')) && in_array($div->name, old('cc_list'))) ? 'selected' : '' }}>
+                                {{ $div->name }} ({{ $div->initial }})
+                            </option>
+                        @endforeach
+                    </select>
+                    <p class="text-[10px] text-gray-400 mt-1 italic">* Pilih divisi dari daftar. Anda bisa memilih lebih dari satu.</p>
                 </div>
             </div>
 
@@ -90,7 +105,13 @@
             <!-- Aksi -->
             <div class="flex items-center justify-end space-x-4 pt-6 border-t">
                 <a href="{{ route('memos.index') }}" class="text-gray-600 hover:text-gray-800 font-medium transition">Batal</a>
-                <button type="submit" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-10 rounded-xl shadow-lg shadow-blue-200 transition-all transform active:scale-95 flex items-center">
+                
+                <button type="submit" name="action" value="draft" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 px-8 rounded-xl transition-all flex items-center border border-gray-200">
+                    <i data-lucide="archive" class="w-4 h-4 mr-2"></i>
+                    Simpan Draf
+                </button>
+
+                <button type="submit" name="action" value="publish" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-10 rounded-xl shadow-lg shadow-blue-200 transition-all transform active:scale-95 flex items-center">
                     <i data-lucide="save" class="w-4 h-4 mr-2"></i>
                     Simpan & Terbitkan
                 </button>
@@ -112,47 +133,44 @@
         border-color: #3B82F6;
     }
     .ck-editor__editable {
-        min-height: 250px;
+        min-height: 300px;
     }
 </style>
 
+<script src="https://cdn.ckeditor.com/ckeditor5/36.0.1/classic/ckeditor.js"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script src="https://cdn.ckeditor.com/ckeditor5/36.0.1/classic/ckeditor.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // Inisialisasi Ikon Lucide
         lucide.createIcons();
 
-        // Inisialisasi Select2 untuk CC List
+        // Inisialisasi Select2
         const $ccSelect = $('#cc_select').select2({
-            placeholder: " Pilih divisi tembusan...",
+            placeholder: " Klik untuk memilih divisi...",
             allowClear: true,
             width: '100%'
         });
 
-        // Logika Pilih Semua
+        // Logika "Pilih Semua"
         $ccSelect.on('select2:select', function (e) {
             if (e.params.data.id === 'all') {
-                // Pilih semua opsi kecuali 'all' sendiri
-                const allOptions = $('#cc_select option').map(function() {
-                    return $(this).val() !== 'all' ? $(this).val() : null;
+                const allDivisions = $('#cc_select option').map(function() {
+                    return ($(this).val() !== 'all' && $(this).val() !== '') ? $(this).val() : null;
                 }).get();
-                
-                $ccSelect.val(allOptions).trigger('change');
+                $ccSelect.val(allDivisions).trigger('change');
             }
         });
 
         // Inisialisasi CKEditor 5
         ClassicEditor
             .create(document.querySelector('#editor'), {
-                toolbar: [ 'heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', 'undo', 'redo' ]
+                ckfinder: {
+                },
+                toolbar: [ 'heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', 'imageUpload', 'undo', 'redo' ]
             })
-            .catch(error => {
-                console.error('CKEditor Error:', error);
-            });
+            .catch(error => console.error(error));
     });
 </script>
 @endsection

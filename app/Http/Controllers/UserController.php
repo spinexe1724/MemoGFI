@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Division;
+use App\Models\Branch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -33,8 +34,9 @@ class UserController extends Controller
         if (Auth::user()->role !== 'superadmin') {
             abort(403);
         }
+        $branches = Branch::all(); // Tambahkan ini
           $divisions = Division::all(); // Ambil dari DB
-        return view('users.create', compact('divisions'));
+        return view('users.create', compact('divisions','branches'));
     }
 
     /**
@@ -53,6 +55,8 @@ class UserController extends Controller
             'role' => ['required', 'in:superadmin,gm,direksi,supervisor'],
             'division' => ['nullable'], // Validasi dropdown divisi
                  'level' => ['required_if:role,staff,gm,direksi,superadmin', 'nullable', 'in:2,3'],
+                             'branch' => ['required', 'exists:branches,name'], // Validasi cabang
+
         ]);
         
         $role = $request->role;
@@ -67,6 +71,8 @@ class UserController extends Controller
             'password' => Hash::make($request->password),
             'role' => $request->role,
             'division' => $request->division,
+                        'branch' => $request->branch,
+
             'level' => $level ?? 2, // Fallback ke level 2 jika tidak terdefinisi
         ]);
 

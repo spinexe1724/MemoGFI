@@ -22,8 +22,10 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
+        {{-- Sidebar Informasi --}}
         <div class="lg:col-span-4 space-y-6 lg:sticky lg:top-8">
             
+            {{-- Status Card --}}
             <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
                 <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Status Dokumen</h3>
                 @php
@@ -45,24 +47,25 @@
                             </div>
                             <span class="text-gray-700 font-extrabold text-sm uppercase">Kadaluwarsa</span>
                         </div>
-                    @elseif($memo->is_fully_approved)
+                    @elseif($memo->is_final)
                         <div class="flex items-center p-3 bg-green-50 border border-green-100 rounded-2xl">
-                            <div class="bg-green-500 p-2 rounded-xl text-white mr-3">
+                            <div class="bg-green-600 p-2 rounded-xl text-white mr-3">
                                 <i data-lucide="check-check" class="w-5 h-5"></i>
                             </div>
-                            <span class="text-green-700 font-extrabold text-sm uppercase">Final / Approved</span>
+                            <span class="text-green-700 font-extrabold text-sm uppercase">Aktif / Valid</span>
                         </div>
                     @else
                         <div class="flex items-center p-3 bg-amber-50 border border-amber-100 rounded-2xl">
                             <div class="bg-amber-500 p-2 rounded-xl text-white mr-3">
                                 <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
                             </div>
-                            <span class="text-amber-700 font-extrabold text-sm uppercase">Menunggu Review</span>
+                            <span class="text-amber-700 font-extrabold text-sm uppercase">Menunggu Approval</span>
                         </div>
                     @endif
                 </div>
             </div>
 
+            {{-- Meta Info --}}
             <div class="bg-white rounded-3xl shadow-sm border border-gray-100 divide-y divide-gray-50">
                 <div class="p-6">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Meta Informasi</h3>
@@ -98,21 +101,62 @@
                 </div>
             </div>
 
-            @if(in_array(Auth::user()->role, ['gm', 'direksi']) && !$memo->is_rejected && !$memo->is_fully_approved && !$memo->approvals->contains('id', Auth::id()))
-                <div class="bg-gradient-to-br from-blue-700 to-indigo-800 rounded-3xl shadow-xl p-6 text-black">
-                    <h3 class="text-lg font-bold mb-2 flex items-center">
-                        <i data-lucide="shield-alert" class="w-5 h-5 mr-2 text-blue-300"></i>
-                        Butuh Approval
+            {{-- LOGIKA APPROVAL PANEL --}}
+            @if(!$memo->is_draft && !$memo->is_final && !$memo->is_rejected && !$memo->approvals->contains('id', Auth::id()))
+                @php
+                    $role = Auth::user()->role;
+                    $canApprove = false;
+                    
+                    // 1. Manager yang ditunjuk khusus (Persetujuan Manager pilihan Supervisor)
+                    if (Auth::id() == $memo->approver_id) $canApprove = true;
+                    
+                    // 2. Role tinggi (GM/Direksi) selalu bisa approve/reject
+                    if (in_array($role, ['gm', 'direksi'])) $canApprove = true;
+                    
+                    // 3. Fallback: Manager dari divisi pengirim (jika approver_id kosong atau satu divisi)
+                    if ($role === 'manager' && Auth::user()->division == $memo->user->division) $canApprove = true;
+                @endphp
+
+                @if($canApprove)
+                    <div class="bg-gradient-to-br from-blue-700 to-indigo-800 rounded-3xl shadow-xl p-6 text-white">
+                        <h3 class="text-lg font-bold mb-2 flex items-center">
+                            <i data-lucide="shield-alert" class="w-5 h-5 mr-2 text-blue-300"></i>
+                            Butuh Approval
+                        </h3>
+                        <p class="text-blue-100 text-sm mb-6 opacity-80">Anda memiliki otoritas untuk menyetujui atau menolak memo internal ini.</p>
+                        
+                        <div class="flex flex-col gap-3">
+                            {{-- Tombol Approve --}}
+                            <button onclick="confirmApprove({{ $memo->id }})" class="w-full bg-white text-blue-800 font-bold py-3 rounded-2xl hover:bg-blue-50 transition-all flex items-center justify-center">
+                                <i data-lucide="check-circle" class="w-4 h-4 mr-2"></i> Approve Sekarang
+                            </button>
+
+                            {{-- Tombol Reject (Dimunculkan kembali sesuai permintaan) --}}
+                            <form action="{{ route('memos.reject', $memo->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menolak/membatalkan memo ini?')">
+                                @csrf
+                                <button type="submit" class="w-full bg-red-900/40 text-red-100 font-bold py-3 rounded-2xl hover:bg-red-600 hover:text-white transition-all border border-red-400/30 flex items-center justify-center">
+                                    <i data-lucide="x-circle" class="w-4 h-4 mr-2"></i> Tolak Dokumen
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @endif
+            @endif
+
+            {{-- Tombol Edit untuk Draf --}}
+            @if($memo->is_draft && Auth::id() == $memo->user_id)
+                <div class="bg-amber-50 rounded-3xl border border-amber-200 p-6">
+                    <h3 class="text-amber-800 font-bold mb-4 flex items-center text-sm">
+                        <i data-lucide="info" class="w-4 h-4 mr-2"></i> Memo Masih Draf
                     </h3>
-                    <p class="text-black-100 text-sm mb-6 opacity-80">Anda memiliki otoritas untuk menyetujui atau menolak memo ini.</p>
-                    <div class="grid grid-cols-1 gap-3">
-                        <button onclick="confirmApprove({{ $memo->id }})" class="w-full bg-white text-black-800 font-bold py-3 rounded-2xl hover:bg-blue-50 transition-all flex items-center justify-center">
-                            <i data-lucide="check-circle" class="w-4 h-4 mr-2"></i> Approve Sekarang
-                        </button>
-                        <form action="{{ route('memos.reject', $memo->id) }}" method="POST" onsubmit="return confirm('Tolak memo ini?')">
+                    <div class="flex flex-col gap-3">
+                        <a href="{{ route('memos.edit', $memo->id) }}" class="w-full bg-white border border-amber-200 text-amber-700 font-bold py-3 rounded-2xl text-center hover:bg-amber-100 transition-all">
+                            Edit Kembali
+                        </a>
+                        <form action="{{ route('memos.publish', $memo->id) }}" method="POST">
                             @csrf
-                            <button type="submit" class="w-full bg-red-900/40 text-blue-100 font-bold py-3 rounded-2xl hover:bg-blue-600 hover:text-white transition-all">
-                                Reject Dokumen
+                            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-2xl shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center">
+                                <i data-lucide="send" class="w-4 h-4 mr-2"></i> Terbitkan Sekarang
                             </button>
                         </form>
                     </div>
@@ -120,6 +164,7 @@
             @endif
         </div>
 
+        {{-- Konten Utama Memo --}}
         <div class="lg:col-span-8 space-y-8">
             
             <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden relative">
@@ -197,6 +242,7 @@
     </div>
 </div>
 
+{{-- Form Tersembunyi untuk Approval --}}
 <form id="approve-form-{{ $memo->id }}" action="{{ route('memos.approve', $memo->id) }}" method="POST" style="display:none;">
     @csrf
     <input type="hidden" name="note" id="note-input-{{ $memo->id }}">
@@ -210,14 +256,14 @@
     function confirmApprove(memoId) {
         Swal.fire({
             title: 'Konfirmasi Persetujuan',
-            text: "Tambahkan catatan instruksi jika ada:",
+            text: "Tambahkan catatan instruksi atau keterangan jika diperlukan:",
             input: 'textarea',
-            inputPlaceholder: 'Contoh: Lanjutkan ke tahap pembayaran...',
+            inputPlaceholder: 'Contoh: Lanjutkan ke tahap selanjutnya...',
             icon: 'info',
             showCancelButton: true,
-            confirmButtonColor: '#1e40af', // Blue 800
+            confirmButtonColor: '#1e40af', 
             cancelButtonColor: '#94a3b8',
-            confirmButtonText: '<i class="inline-block mr-2" data-lucide="check"></i> Approve',
+            confirmButtonText: 'Ya, Setujui',
             cancelButtonText: 'Batal',
             customClass: {
                 popup: 'rounded-[2rem]',
@@ -238,11 +284,10 @@
 </script>
 
 <style>
-    /* Styling khusus agar badan memo tidak kaku */
     .prose p {
         margin-bottom: 1.25em;
         line-height: 1.8;
-        color: #374151; /* gray-700 */
+        color: #374151;
     }
 </style>
 @endsection

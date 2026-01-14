@@ -12,12 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('memo_approvals', function (Blueprint $table) {
-            $table->id();
-            // Menghubungkan ke tabel memos
-            $table->foreignId('memo_id')->constrained()->onDelete('cascade');
-            // Menghubungkan ke tabel users (GM yang menyetujui)
+           $table->id();
+            
+            // Relasi ke tabel users (siapa yang menandatangani)
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-             $table->text('note')->nullable();
+            
+            // Relasi ke tabel memos (memo mana yang ditandatangani)
+            $table->foreignId('memo_id')->constrained()->onDelete('cascade');
+            
+            // Catatan tambahan (misal: "Diterbitkan", "Disetujui oleh Manager", dll)
+            $table->string('note')->nullable();
+            
             $table->timestamps();
         });
     }

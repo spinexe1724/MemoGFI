@@ -41,22 +41,32 @@ class DatabaseSeeder extends Seeder
             'level' => '3'
         ]);
     }
+
     
-    $gm = [
+         
+   \App\Models\User::create([
+    'name' => 'Tohir Sustanto',
+    'email' => 'tohir@gfi.co.id',
+    'password' => Hash::make('password'),
+    'role' => 'gm',
+    'level' => '3',
+    ]);
+    
+    $manager = [
         ['name' => 'vicky', 'email' => 'vicky@gfi.co.id','division' => 'HRD'],
         ['name' => 'roby', 'email' => 'roby@gfi.co.id','division' => 'Remedial'],
         ['name' => 'stefanus', 'email' => 'stefanus@gfi.co.id','division' => 'Dealer Financing'],
         ['name' => 'nafsiah', 'email' => 'nafsiah@gfi.co.id','division' => 'Operations'],
     ];
 
-    foreach ($gm as $gms) {
+    foreach ($manager as $managers) {
         User::create([
-            'name' => $gms['name'],
-            'email' => $gms['email'],
+            'name' => $managers['name'],
+            'email' => $managers['email'],
             'password' => bcrypt('password'),
-            'role' => 'gm',
+            'role' => 'manager',
             'level' => '2',
-            'division' => $gms['division']
+            'division' => $managers['division']
 
         ]);
     }
@@ -82,8 +92,8 @@ class DatabaseSeeder extends Seeder
     // Akun 5 GM dengan email berbasis nama
     $BS = [
         
-        ['name' => 'Bussiness Support', 'email' => 'bs@gfi.co.id', 'division' => 'Business Support'],
-        ['name' => 'SPV Bussiness Support', 'email' => 'spvbs@gfi.co.id', 'division' => 'Business Support'],
+        ['name' => 'Bussiness Support', 'email' => 'bs@gfi.co.id', 'division' => 'Bussiness Support'],
+        ['name' => 'SPV Bussiness Support', 'email' => 'spvbs@gfi.co.id', 'division' => 'Bussiness Support'],
         ['name' => 'HR', 'email' => 'hr@gfi.co.id', 'division' => 'HRD'],
         ['name' => 'SKAI', 'email' => 'skai@gfi.co.id', 'division' => 'Internal Control'],
         ['name' => 'Remedial', 'email' => 'remedial@gfi.co.id', 'division' => 'Remedial'],

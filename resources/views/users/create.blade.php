@@ -57,7 +57,18 @@
                         @endforeach
                     </select>
                 </div>
-
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="space-y-2">
+                    <label class="text-sm font-bold text-gray-700 tracking-wide uppercase">Division</label>
+                     <select name="branch" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
+                                <option value="">-- Pilih Cabang --</option>
+                                @foreach($branches as $branch)
+                                    <option value="{{ $branch->name }}" {{ old('branch') == $branch->name ? 'selected' : '' }}>
+                                        {{ $branch->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                </div>
                 <div class="space-y-2">
                     <label class="text-sm font-bold text-gray-700 tracking-wide uppercase">Account Role</label>
                     <select name="role" id="role_select" onchange="handleRoleChange()" 
@@ -171,5 +182,6 @@
             btn.innerHTML = '<span class="animate-spin mr-3 h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span> Processing...';
         });
     });
+    
 </script>
 @endsection
