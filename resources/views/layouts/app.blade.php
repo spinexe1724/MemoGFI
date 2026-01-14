@@ -37,32 +37,68 @@
             <div>
                 <p class="px-4 mb-3 text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Menu Utama</p>
                 <div class="space-y-1">
-                    {{-- Dashboard --}}
-                    <a href="{{ route('memos.index') }}" 
-                       class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('memos.index') ? 'bg-red-50 text-red-700 font-bold border border-red-100/50 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
-                        <i data-lucide="layout-grid" class="w-5 h-5 mr-3 transition-transform group-hover:scale-110"></i>
-                        <span>Dashboard</span>
-                    </a>
+                    
+                    @if(Auth::user()->role === 'superadmin')
+                        {{-- Menu Khusus Superadmin --}}
+                        
+                        {{-- 1. Manajemen User --}}
+                        <a href="{{ route('users.index') }}" 
+                           class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('users.*') ? 'bg-red-50 text-red-700 font-bold border border-red-100/50 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
+                            <i data-lucide="users" class="w-5 h-5 mr-3 transition-transform group-hover:scale-110"></i>
+                            <span>Manajemen User</span>
+                        </a>
 
-                    {{-- Memo Saya (Aktif) --}}
-                    <a href="{{ route('memos.my_memos') }}" 
-                       class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('memos.my_memos') ? 'bg-red-50 text-red-700 font-bold border border-red-100/50 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
-                        <i data-lucide="mail" class="w-5 h-5 mr-3 transition-transform group-hover:scale-110"></i>
-                        <span>Memo Saya</span>
-                    </a>
+                        {{-- 2. Log Memo --}}
+                        <a href="{{ route('memos.logs') }}" 
+                           class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('memos.logs') ? 'bg-red-50 text-red-700 font-bold border border-red-100/50 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
+                            <i data-lucide="file-text" class="w-5 h-5 mr-3 transition-transform group-hover:scale-110"></i>
+                            <span>Log Memo Global</span>
+                        </a>
 
-                    {{-- Memo Draf --}}
-                    <a href="{{ route('memos.drafts') }}" 
-                       class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('memos.drafts') ? 'bg-red-50 text-red-700 font-bold border border-red-100/50 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
-                        <i data-lucide="archive" class="w-5 h-5 mr-3 transition-transform group-hover:scale-110"></i>
-                        <span>Memo Draf</span>
-                        @php
-                            $draftCount = \App\Models\Memo::where('user_id', Auth::id())->where('is_draft', true)->count();
-                        @endphp
-                        @if($draftCount > 0)
-                            <span class="ml-auto bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold">{{ $draftCount }}</span>
-                        @endif
-                    </a>
+                        {{-- 3. Manajemen Divisi --}}
+                        <a href="{{ route('divisions.index') }}" 
+                           class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('divisions.*') ? 'bg-red-50 text-red-700 font-bold border border-red-100/50 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
+                            <i data-lucide="layers" class="w-5 h-5 mr-3 transition-transform group-hover:scale-110"></i>
+                            <span>Manajemen Divisi</span>
+                        </a>
+
+                        {{-- 4. Manajemen Cabang --}}
+                        <a href="{{ route('branches.index') }}" 
+                           class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('branches.*') ? 'bg-red-50 text-red-700 font-bold border border-red-100/50 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
+                            <i data-lucide="map-pin" class="w-5 h-5 mr-3 transition-transform group-hover:scale-110"></i>
+                            <span>Manajemen Cabang</span>
+                        </a>
+
+                    @else
+                        {{-- Menu Standar (Staff/Supervisor/Manager/GM/Direksi) --}}
+
+                        {{-- Dashboard --}}
+                        <a href="{{ route('memos.index') }}" 
+                           class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('memos.index') ? 'bg-red-50 text-red-700 font-bold border border-red-100/50 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
+                            <i data-lucide="layout-grid" class="w-5 h-5 mr-3 transition-transform group-hover:scale-110"></i>
+                            <span>Dashboard</span>
+                        </a>
+
+                        {{-- Memo Saya (Aktif) --}}
+                        <a href="{{ route('memos.my_memos') }}" 
+                           class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('memos.my_memos') ? 'bg-red-50 text-red-700 font-bold border border-red-100/50 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
+                            <i data-lucide="mail" class="w-5 h-5 mr-3 transition-transform group-hover:scale-110"></i>
+                            <span>Memo Saya</span>
+                        </a>
+
+                        {{-- Memo Draf --}}
+                        <a href="{{ route('memos.drafts') }}" 
+                           class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('memos.drafts') ? 'bg-red-50 text-red-700 font-bold border border-red-100/50 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
+                            <i data-lucide="archive" class="w-5 h-5 mr-3 transition-transform group-hover:scale-110"></i>
+                            <span>Memo Draf</span>
+                            @php
+                                $draftCount = \App\Models\Memo::where('user_id', Auth::id())->where('is_draft', true)->count();
+                            @endphp
+                            @if($draftCount > 0)
+                                <span class="ml-auto bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold">{{ $draftCount }}</span>
+                            @endif
+                        </a>
+                    @endif
                 </div>
             </div>
 
