@@ -118,12 +118,12 @@
                 @endphp
 
                 @if($canApprove)
-                    <div class="bg-gradient-to-br from-blue-700 to-indigo-800 rounded-3xl shadow-xl p-6 text-white">
+                    <div class="bg-gradient-to-br from-blue-700 to-indigo-800 rounded-3xl shadow-xl p-6 text-black-bold">
                         <h3 class="text-lg font-bold mb-2 flex items-center">
                             <i data-lucide="shield-alert" class="w-5 h-5 mr-2 text-blue-300"></i>
                             Butuh Approval
                         </h3>
-                        <p class="text-blue-100 text-sm mb-6 opacity-80">Anda memiliki otoritas untuk menyetujui atau menolak memo internal ini.</p>
+                        <p class="text-black-800 text-sm mb-6 opacity-80">Anda memiliki otoritas untuk menyetujui atau menolak memo internal ini.</p>
                         
                         <div class="flex flex-col gap-3">
                             {{-- Tombol Approve --}}

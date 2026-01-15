@@ -1,67 +1,120 @@
+@extends('layouts.app')
 
+@section('title', 'Manajemen Cabang - Gratama System')
 
-    <div class="py-12">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+@section('content')
+    <div class="py-12 bg-gray-50/50 min-h-screen">
+        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
             
-            <!-- Form Tambah Cabang -->
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6">
-                <h3 class="text-lg font-bold mb-4 flex items-center">
-                    <i data-lucide="map-pin" class="w-5 h-5 mr-2 text-blue-600"></i>
-                    Tambah Cabang Baru
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                <div>
+                    <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Data Cabang</h2>
+                    <p class="text-slate-500 mt-1">Kelola seluruh kantor cabang operasional dalam satu sistem.</p>
+                </div>
+                <div class="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-2xl border border-blue-100">
+                    <span class="relative flex h-3 w-3">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                    </span>
+                    <span class="text-sm font-bold text-blue-700 uppercase tracking-widest">{{ count($branches) }} Cabang Aktif</span>
+                </div>
+            </div>
+
+            <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 mb-10">
+                <h3 class="text-lg font-bold mb-6 flex items-center text-slate-800">
+                    <div class="p-2 bg-blue-600 rounded-xl mr-3 shadow-lg shadow-blue-200">
+                        <i data-lucide="map-pin" class="w-5 h-5 text-white"></i>
+                    </div>
+                    Registrasi Cabang Baru
                 </h3>
                 <form action="{{ route('branches.store') }}" method="POST">
                     @csrf
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="md:col-span-1">
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Kode Cabang</label>
-                            <input type="text" name="code" placeholder="JKT" class="w-full border-gray-300 rounded-lg shadow-sm" required>
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                        <div class="md:col-span-3">
+                            <label class="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Kode Cabang</label>
+                            <input type="text" name="code" placeholder="Cth: JKT" 
+                                   class="w-full border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all py-3.5" required>
                         </div>
-                        <div class="md:col-span-1">
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nama Cabang</label>
-                            <input type="text" name="name" placeholder="Jakarta Pusat" class="w-full border-gray-300 rounded-lg shadow-sm" required>
+                        <div class="md:col-span-6">
+                            <label class="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Nama Lokasi</label>
+                            <input type="text" name="name" placeholder="Cth: Jakarta Pusat" 
+                                   class="w-full border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all py-3.5" required>
                         </div>
-                        <div class="flex items-end">
-                            <button type="submit" class="w-full bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-all shadow-md">
-                                Simpan Cabang
+                        <div class="md:col-span-3 flex items-end">
+                            <button type="submit" class="w-full bg-slate-900 text-white px-6 py-4 rounded-2xl font-bold hover:bg-blue-600 transition-all shadow-xl shadow-slate-200 active:scale-95 flex items-center justify-center group">
+                                <i data-lucide="save" class="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform"></i> 
+                                Simpan Data
                             </button>
                         </div>
                     </div>
                 </form>
             </div>
 
-            <!-- Tabel Daftar Cabang -->
-            <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-100">
-                <table class="w-full text-left">
-                    <thead class="bg-gray-50 border-b">
-                        <tr>
-                            <th class="p-4 font-bold text-gray-600">Kode</th>
-                            <th class="p-4 font-bold text-gray-600">Nama Cabang</th>
-                            <th class="p-4 font-bold text-gray-600 text-center">Aksi</th>
+            <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                <table id="branchTable" class="w-full text-left display border-none">
+                    <thead>
+                        <tr class="text-slate-400 text-[11px] font-black uppercase tracking-[0.2em]">
+                            <th class="p-4 border-b border-slate-50">Identity</th>
+                            <th class="p-4 border-b border-slate-50">Branch Name</th>
+                            <th class="p-4 border-b border-slate-50 text-center">Operational</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        @forelse($branches as $branch)
-                        <tr class="hover:bg-gray-50 transition-colors">
+                    <tbody class="divide-y divide-slate-50">
+                        @foreach($branches as $branch)
+                        <tr class="group hover:bg-slate-50/80 transition-all duration-300">
                             <td class="p-4">
-                                <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs font-bold border border-indigo-100 uppercase">
+                                <span class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-xl text-[11px] font-black border border-slate-200 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all uppercase tracking-tighter">
                                     {{ $branch->code }}
                                 </span>
                             </td>
-                            <td class="p-4 font-semibold text-gray-800">{{ $branch->name }}</td>
-                            <td class="p-4 text-center">
-                                <form action="{{ route('branches.destroy', $branch->id) }}" method="POST" onsubmit="return confirm('Hapus cabang ini?')">
-                                    @csrf @method('DELETE')
-                                    <button class="text-red-500 hover:text-red-700 font-bold text-sm">Hapus</button>
-                                </form>
+                            <td class="p-4">
+                                <div class="flex flex-col">
+                                    <span class="font-bold text-slate-800 tracking-tight">{{ $branch->name }}</span>
+                                    <span class="text-[10px] text-slate-400 font-medium">Gratama Branch Unit</span>
+                                </div>
+                            </td>
+                            <td class="p-4">
+                                <div class="flex justify-center items-center">
+                                    <form action="{{ route('branches.destroy', $branch->id) }}" method="POST" onsubmit="return confirm('Hapus cabang ini?')">
+                                        @csrf @method('DELETE')
+                                        <button class="p-2.5 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all" title="Hapus">
+                                            <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
-                        @empty
-                        <tr>
-                            <td colspan="3" class="p-8 text-center text-gray-400 italic">Belum ada data cabang.</td>
-                        </tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+@endsection
+
+@push('scripts')
+
+<script>
+    $(document).ready(function() {
+        $('#branchTable').DataTable({
+            responsive: true,
+            pageLength: 10,
+            language: {
+                search: "",
+                searchPlaceholder: "Cari cabang...",
+                lengthMenu: "Tampilkan _MENU_",
+                info: "Menampilkan _START_ s/d _END_ dari _TOTAL_ data",
+                paginate: {
+                    next: "→",
+                    previous: "←"
+                }
+            }
+        });
+        
+        // Memastikan Lucide icons dirender setelah DataTable dimuat
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    });
+</script>
+@endpush

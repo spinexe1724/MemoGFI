@@ -16,10 +16,6 @@
                     Daftar seluruh memo internal yang telah diterbitkan di sistem.
                 </p>
             </div>
-            <a href="{{ route('memos.create') }}" class="w-full md:w-auto bg-gradient-to-r from-red-700 to-red-800 hover:from-red-800 hover:to-red-900 text-black px-6 py-3 rounded-xl font-bold shadow-lg shadow-red-100 transition-all transform hover:-translate-y-1 flex items-center justify-center">
-                <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>
-                Buat Memo Baru
-            </a>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

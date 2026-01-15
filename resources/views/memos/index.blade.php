@@ -14,11 +14,11 @@
         </div>
         
         @if(in_array(Auth::user()->role, ['supervisor', 'manager', 'gm', 'direksi']))
-            <a href="{{ route('memos.create') }}" class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold rounded-2xl shadow-lg shadow-green-100 transition-all transform hover:-translate-y-1 active:scale-95">
-                <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>
-                Buat Memo Baru
-            </a>
-        @endif
+    <a href="{{ route('memos.create') }}" class="inline-flex items-center justify-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-black rounded-2xl shadow-lg shadow-red-200 transition-all transform hover:-translate-y-1 active:scale-95 border-b-4 border-red-800">
+        <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>
+        BUAT MEMO BARU
+    </a>
+@endif
     </div>
 
     {{-- Dashboard Stats --}}
@@ -122,33 +122,38 @@
                                 {{ $mengetahui }}
                             </td>
                             <td class="py-6">
-                                <div class="flex flex-col items-start gap-1">
-                                    @if($memo->is_draft)
-                                        <span class="px-2.5 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-lg border border-amber-200 uppercase">Draf</span>
-                                    @elseif($memo->is_rejected)
-                                        <span class="px-2.5 py-1 bg-red-100 text-red-700 text-[10px] font-bold rounded-lg border border-red-200 uppercase">Ditolak</span>
-                                    @elseif($isExpired)
-                                        <span class="px-2.5 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold rounded-lg border border-gray-200 uppercase">Kadaluarsa</span>
-                                    @elseif($memo->is_final)
-                                        <span class="px-2.5 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded-lg border border-green-200 uppercase">Aktif</span>
-                                    @else
-                                        {{-- Logika Pending dengan Progress Sign --}}
-                                        <span class="px-2.5 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-lg border border-blue-200 uppercase text-center">Pending</span>
-                                        <span class="text-[9px] text-gray-400 font-bold italic tracking-tighter text-center w-full">
-                                            {{ $currentSignCount }} / {{ $target }} Signatures
-                                        </span>
-                                    @endif
-                                    
-                                    {{-- Avatar kecil untuk para penyetuju --}}
-                                    <div class="flex -space-x-1 mt-1 overflow-hidden">
-                                        @foreach($memo->approvals as $approver)
-                                            <div class="inline-block h-5 w-5 rounded-full ring-2 ring-white bg-blue-600 text-[8px] text-white flex items-center justify-center font-bold" title="{{ $approver->name }}">
-                                                {{ substr($approver->name, 0, 2) }}
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            </td>
+    <div class="flex flex-col items-start gap-2">
+        @if($memo->is_draft)
+            <span class="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-black rounded-full border border-amber-200 uppercase tracking-tighter">Draf</span>
+        @elseif($memo->is_rejected)
+            <span class="px-3 py-1 bg-red-100 text-red-700 text-[10px] font-black rounded-full border border-red-200 uppercase tracking-tighter">Ditolak</span>
+        @elseif($isExpired)
+            <span class="px-3 py-1 bg-gray-100 text-gray-600 text-[10px] font-black rounded-full border border-gray-200 uppercase tracking-tighter">Kadaluarsa</span>
+        @elseif($memo->is_final)
+            <span class="px-3 py-1 bg-green-100 text-green-700 text-[10px] font-black rounded-full border border-green-200 uppercase tracking-tighter">Aktif</span>
+        @else
+            <div class="flex flex-col">
+                <span class="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-full border border-blue-200 uppercase tracking-tighter inline-block w-fit">Pending</span>
+                <span class="text-[9px] text-slate-400 font-bold italic mt-1">{{ $currentSignCount }} / {{ $target }} Signatures</span>
+            </div>
+        @endif
+        
+        <div class="flex flex-wrap gap-1.5 mt-1 max-w-[200px]">
+            @foreach($memo->approvals as $approver)
+                <div class="group/name flex items-center bg-slate-50 border border-slate-200 rounded-md px-2 py-0.5" title="Telah Disetujui">
+                    <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1.5 animate-pulse"></div>
+                    <span class="text-[10px] font-bold text-slate-700 whitespace-nowrap">
+                        {{ $approver->name }}
+                    </span>
+                </div>
+            @endforeach
+
+            @if($memo->approvals->count() == 0 && !$memo->is_draft)
+                <span class="text-[10px] text-slate-300 italic">Menunggu tanda tangan pertama...</span>
+            @endif
+        </div>
+    </div>
+</td>
                             <td class="py-6 text-right">
                                 <div class="flex items-center justify-end space-x-2">
                                     <a href="{{ route('memos.show', $memo->id) }}" class="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-blue-600 hover:border-blue-200 hover:shadow-sm transition-all" title="Detail">

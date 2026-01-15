@@ -13,12 +13,12 @@
             <p class="text-gray-500 mt-1">Kelola dan pantau seluruh sirkulasi memo internal di sini.</p>
         </div>
         
-        @if(in_array(Auth::user()->role, ['supervisor', 'gm']))
-            <a href="{{ route('memos.create') }}" class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-black font-bold rounded-2xl shadow-lg shadow-green-100 transition-all transform hover:-translate-y-1 active:scale-95">
-                <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>
-                Buat Memo Baru
-            </a>
-        @endif
+        @if(in_array(Auth::user()->role, ['supervisor', 'manager', 'gm', 'direksi']))
+    <a href="{{ route('memos.create') }}" class="inline-flex items-center justify-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-black rounded-2xl shadow-lg shadow-red-200 transition-all transform hover:-translate-y-1 active:scale-95 border-b-4 border-red-800">
+        <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>
+        BUAT MEMO BARU
+    </a>
+@endif
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
