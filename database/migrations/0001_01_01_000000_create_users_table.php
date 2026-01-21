@@ -17,7 +17,7 @@ return new class extends Migration
     $table->string('email')->unique();
     $table->timestamp('email_verified_at')->nullable();
     $table->string('password');
-    $table->string('role')->default('staff'); // superadmin, gm, staff
+    $table->string('role')->default('supervisor'); // superadmin, gm, staff
      $table->string('division')->nullable();   // Tambahan Field Divisi
     $table->rememberToken();
     $table->timestamps();

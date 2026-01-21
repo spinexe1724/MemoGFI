@@ -52,7 +52,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', 'in:superadmin,gm,direksi,supervisor'],
+            'role' => ['required', 'in:superadmin,gm,direksi,supervisor,admin,ga,bm,manager'],
             'division' => ['nullable'], // Validasi dropdown divisi
                  'level' => ['required_if:role,staff,gm,direksi,superadmin', 'nullable', 'in:2,3'],
                              'branch' => ['required', 'exists:branches,name'], // Validasi cabang
@@ -102,7 +102,7 @@ class UserController extends Controller
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email,'.$user->id],
-            'role' => ['required', 'in:superadmin,gm,direksi,supervisor'],
+            'role' => ['required', 'in:superadmin,gm,direksi,supervisor,admin,ga,manager,bm'],
             'division' => ['required', 'in:IT,HRD,IC,Remedial'],
                         'level' => ['required_if:role,staff,gm,direksi,superadmin', 'nullable', 'in:2,3'],
 

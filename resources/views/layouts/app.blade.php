@@ -71,7 +71,7 @@
                         </a>
 
                     @else
-                        {{-- Menu Standar (Staff/Supervisor/Manager/GM/Direksi) --}}
+                        {{-- Menu Standar (Staff/Supervisor/Manager/BM/GM/Direksi/GA) --}}
 
                         {{-- Dashboard --}}
                         <a href="{{ route('memos.index') }}" 
@@ -80,14 +80,39 @@
                             <span>Dashboard</span>
                         </a>
 
-                        {{-- Memo Saya (Aktif) --}}
+                        {{-- MENU APPROVAL: Sinkron dengan logic Controller --}}
+                        @php
+                            $user = Auth::user();
+                            $isApprover = in_array($user->role, ['manager', 'bm', 'gm', 'direksi']) || strtoupper($user->division) === 'GA';
+                            
+                            // Panggil fungsi statis yang baru kita buat di Controller
+                            $approvalCount = $isApprover ? \App\Http\Controllers\MemoController::getPendingCount() : 0;
+                        @endphp
+
+                        @if($isApprover)
+                        <a href="{{ route('memos.approvals') }}" 
+                           class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('memos.approvals') ? 'bg-red-50 text-red-700 font-bold border border-red-100/50 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
+                            <i data-lucide="check-square" class="w-5 h-5 mr-3 transition-transform group-hover:scale-110"></i>
+                            <span>Approval</span>
+                            @if($approvalCount > 0)
+                                <span class="ml-auto bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold animate-pulse">
+                                    {{ $approvalCount }}
+                                </span>
+                            @endif
+                        </a>
+                        @endif
+
+                        {{-- Menu Lainnya (Memo Saya & Draf) --}}
                         <a href="{{ route('memos.my_memos') }}" 
                            class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('memos.my_memos') ? 'bg-red-50 text-red-700 font-bold border border-red-100/50 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
                             <i data-lucide="mail" class="w-5 h-5 mr-3 transition-transform group-hover:scale-110"></i>
-                            <span>Memo Saya</span>
+                            <span>Memo Aktif</span>
                         </a>
-
-                        {{-- Memo Draf --}}
+ <a href="{{ route('memos.rejectedMemos') }}" 
+                           class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('memos.rejectedMemos') ? 'bg-red-50 text-red-700 font-bold border border-red-100/50 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
+                            <i data-lucide="mail" class="w-5 h-5 mr-3 transition-transform group-hover:scale-110"></i>
+                            <span>Memo Ditolak / Kadaluarsa</span>
+                        </a>
                         <a href="{{ route('memos.drafts') }}" 
                            class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('memos.drafts') ? 'bg-red-50 text-red-700 font-bold border border-red-100/50 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
                             <i data-lucide="archive" class="w-5 h-5 mr-3 transition-transform group-hover:scale-110"></i>

@@ -13,7 +13,7 @@
             <p class="text-gray-500 mt-1">Kelola dan pantau seluruh sirkulasi memo internal di sini.</p>
         </div>
         
-        @if(in_array(Auth::user()->role, ['supervisor', 'manager', 'gm', 'direksi']))
+        @if(in_array(Auth::user()->role, ['supervisor', 'manager','admin']))
     <a href="{{ route('memos.create') }}" class="inline-flex items-center justify-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-black rounded-2xl shadow-lg shadow-red-200 transition-all transform hover:-translate-y-1 active:scale-95 border-b-4 border-red-800">
         <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>
         BUAT MEMO BARU

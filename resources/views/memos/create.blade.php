@@ -3,7 +3,7 @@
 @section('title', 'Buat Memo Baru')
 
 @section('content')
-<div class="max-w-12xl mx-auto">
+<div class="max-w-8xl mx-auto">
     <div class="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
         <!-- Header Panel -->
         <div class="bg-red-800 p-6 flex justify-between items-center text-white">
@@ -33,9 +33,9 @@
                 <!-- Baris 1: No Referensi & Masa Berlaku -->
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Nomor Referensi</label>
-                    <input type="text" name="reference_no" value="{{ $autoRef }}" readonly 
+                    <input type="text" name="reference_no" value="{{ old('reference_no', $autoRef) }}" readonly 
                            class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-500 font-mono outline-none cursor-not-allowed" required>
-                    <p class="text-[10px] text-gray-400 mt-1 italic">* Dibuat otomatis berdasarkan divisi Anda.</p>
+                    <p class="text-[10px] text-gray-400 mt-1 italic">* Dibuat otomatis berdasarkan sistem.</p>
                 </div>
                 
                 <div>
@@ -45,40 +45,59 @@
                     <p class="text-[10px] text-gray-400 mt-1 italic">* Status otomatis TIDAK AKTIF setelah tanggal ini.</p>
                 </div>
 
-                <!-- Perihal (Dipindah ke baris atas agar row tetap penuh) -->
+                <!-- Perihal -->
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Perihal / Subjek</label>
-                    <input type="text" name="subject" value="{{ old('subject') }}" placeholder="Contoh: Kegiatan Operasional HO..." 
+                    <input type="text" name="subject" value="{{ old('subject') }}" placeholder="Contoh: Kegiatan Operasional Cabang..." 
                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all outline-none" required>
                 </div>
 
                 <!-- Baris 2: Kepada & Dari -->
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Kepada</label>
-                    <input type="text" name="recipient" value="{{ old('recipient') }}" placeholder="Contoh: Seluruh Karyawan" 
-                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all outline-none" required>
+                    <input type="text" name="recipient" 
+                           placeholder="Contoh: Seluruh Karyawan / Nama Atasan" 
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all outline-none" 
+                           required>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Dari (Divisi)</label>
-                    <input type="text" name="sender" value="{{ old('sender', Auth::user()->division) }}" readonly  
-                           class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-500 outline-none" required>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Dari (Divisi/Cabang)</label>
+                    <input type="text" name="sender" value="{{ Auth::user()->division }}" readonly  
+                           class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-500 outline-none cursor-not-allowed" required>
                 </div>
 
-                <!-- Field Menyetujui (Khusus Supervisor) -->
-                @if(Auth::user()->role === 'supervisor')
-                <div id="approver_field">
-                    <label class="block text-sm font-semibold text-gray-700 mb-2 italic text-red-700">Menyetujui (Manager Divisi)</label>
-                    <select name="approver_id" class="w-full border border-gray-300 rounded-lg shadow-sm focus:ring-red-500 focus:border-red-500 p-2.5" required>
-                        <option value="">-- Pilih Manager Penyetuju --</option>
-                        @foreach($managers as $manager)
-                            <option value="{{ $manager->id }}">
-                                {{ $manager->name }} - ({{ $manager->division }})
-                            </option>
-                        @endforeach
-                    </select>
-                    <p class="text-[10px] text-gray-400 mt-1">* Wajib diisi oleh Supervisor untuk diteruskan ke Manager.</p>
-                </div>
+                <!-- Logika Field Menyetujui -->
+                @if(Auth::user()->role === 'admin')
+                    {{-- Khusus Admin: Nilai approver_id diambil dari $memo->approver_id (yang diset di Controller) atau inputan sebelumnya --}}
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2 italic text-red-700">Menyetujui (Otomatis BM)</label>
+                        @php
+                            $currentApproverId = old('approver_id', $memo->approver_id);
+                            $selectedBM = $managers->firstWhere('id', $currentApproverId);
+                        @endphp
+                        <input type="text" 
+                               class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-500 outline-none cursor-not-allowed" 
+                               value="{{ $selectedBM ? $selectedBM->name . ' (BM - ' . $selectedBM->branch . ')' : 'Branch Manager Tidak Ditemukan' }}" 
+                               readonly>
+                        {{-- Hidden input wajib ada agar approver_id terkirim ke server --}}
+                        <input type="hidden" name="approver_id" value="{{ $currentApproverId }}">
+                        <p class="text-[10px] text-blue-600 mt-1 italic">* Penyetuju telah dikunci otomatis ke Branch Manager Cabang Anda.</p>
+                    </div>
+                @elseif(Auth::user()->role === 'supervisor')
+                    {{-- Khusus Supervisor: Dropdown Pilihan --}}
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2 italic text-red-700">Menyetujui (Manager Divisi)</label>
+                        <select name="approver_id" class="w-full border border-gray-300 rounded-lg shadow-sm focus:ring-red-500 focus:border-red-500 p-2.5" required>
+                            <option value="">-- Pilih Manager Penyetuju --</option>
+                            @foreach($managers as $manager)
+                                <option value="{{ $manager->id }}" {{ old('approver_id', $memo->approver_id) == $manager->id ? 'selected' : '' }}>
+                                    {{ $manager->name }} - ({{ $manager->division }})
+                                </option>
+                            @endforeach
+                        </select>
+                        <p class="text-[10px] text-gray-400 mt-1">* Wajib ditentukan agar sirkulasi tanda tangan dapat diteruskan.</p>
+                    </div>
                 @endif
 
                 <!-- Baris 3: Tembusan (CC) -->
@@ -166,9 +185,7 @@
         // Inisialisasi CKEditor 5
         ClassicEditor
             .create(document.querySelector('#editor'), {
-                ckfinder: {
-                },
-                toolbar: [ 'heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', 'imageUpload', 'undo', 'redo' ]
+                toolbar: [ 'heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', 'undo', 'redo' ]
             })
             .catch(error => console.error(error));
     });

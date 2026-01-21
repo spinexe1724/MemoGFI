@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Memo - ' . $memo->reference_no)
+@section('title', 'Detail Memo - ' . $memo->reference_no)
 
 @section('content')
 <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
@@ -38,7 +38,7 @@
                             <div class="bg-red-500 p-2 rounded-xl text-white mr-3">
                                 <i data-lucide="x-circle" class="w-5 h-5"></i>
                             </div>
-                            <span class="text-red-700 font-extrabold text-sm uppercase">Dibatalkan</span>
+                            <span class="text-red-700 font-extrabold text-sm uppercase">Dibatalkan / Ditolak</span>
                         </div>
                     @elseif($isExpired)
                         <div class="flex items-center p-3 bg-gray-50 border border-gray-100 rounded-2xl">
@@ -76,13 +76,11 @@
                         </div>
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-500">Tgl Dibuat</span>
-                            <span class="text-sm font-medium text-gray-800">{{ $memo->created_at->format('d M Y, H:i') }}</span>
+                            <span class="text-sm font-medium text-gray-800">{{ $memo->created_at->format('d M Y, H:i') }} WIB</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="text-sm text-gray-500">Berlaku S/D</span>
-                            <span class="text-sm font-medium {{ $isExpired ? 'text-red-600' : 'text-gray-800' }}">
-                                {{ $memo->valid_until ? \Carbon\Carbon::parse($memo->valid_until)->format('d M Y') : '∞' }}
-                            </span>
+                            <span class="text-sm text-gray-500">Cabang</span>
+                            <span class="text-sm font-bold text-red-800 uppercase">{{ $memo->user->branch ?? '-' }}</span>
                         </div>
                     </div>
                 </div>
@@ -104,77 +102,71 @@
             {{-- LOGIKA APPROVAL PANEL --}}
             @if(!$memo->is_draft && !$memo->is_final && !$memo->is_rejected && !$memo->approvals->contains('id', Auth::id()))
                 @php
-                    $role = Auth::user()->role;
+                    $user = Auth::user();
+                    $role = $user->role;
+                    $div = $user->division;
+                    $count = $memo->approvals->count();
+                    $creator = $memo->user;
+                    $isHO = strtoupper($creator->branch ?? '') === 'HO';
                     $canApprove = false;
-                    
-                    // 1. Manager yang ditunjuk khusus (Persetujuan Manager pilihan Supervisor)
-                    if (Auth::id() == $memo->approver_id) $canApprove = true;
-                    
-                    // 2. Role tinggi (GM/Direksi) selalu bisa approve/reject
-                    if (in_array($role, ['gm', 'direksi'])) $canApprove = true;
-                    
-                    // 3. Fallback: Manager dari divisi pengirim (jika approver_id kosong atau satu divisi)
-                    if ($role === 'manager' && Auth::user()->division == $memo->user->division) $canApprove = true;
+
+                    // Logika Urutan Approval Cabang NON-HO (Admin/Supervisor)
+                    if (!$isHO && in_array($creator->role, ['admin', 'supervisor'])) {
+                        // 1. Creator (count=1) -> Menunggu BM
+                        if ($count == 1 && ($role === 'bm' || $role === 'manager')) $canApprove = true; 
+                        
+                        // 2. BM Approved (count=2) -> Menunggu GA
+                        if ($count == 2 && $div === 'GA') $canApprove = true;      
+                        
+                        // 3. GA Approved (count >= 3) -> Menunggu Direksi
+                        if ($count >= 3 && $role === 'direksi') $canApprove = true; 
+                    } 
+                    // Logika HO / Standar
+                    else {
+                        if (Auth::id() == $memo->approver_id) $canApprove = true;
+                        if (in_array($role, ['gm', 'direksi', 'bm'])) $canApprove = true;
+                        if ($role === 'manager' && $user->division == $memo->user->division) $canApprove = true;
+                    }
                 @endphp
 
                 @if($canApprove)
-                    <div class="bg-gradient-to-br from-blue-700 to-indigo-800 rounded-3xl shadow-xl p-6 text-black-bold">
+                    <div class="bg-gradient-to-br from-blue-700 to-indigo-800 rounded-3xl shadow-xl p-6 text-white">
                         <h3 class="text-lg font-bold mb-2 flex items-center">
                             <i data-lucide="shield-alert" class="w-5 h-5 mr-2 text-blue-300"></i>
                             Butuh Approval
                         </h3>
-                        <p class="text-black-800 text-sm mb-6 opacity-80">Anda memiliki otoritas untuk menyetujui atau menolak memo internal ini.</p>
+                        <p class="text-blue-50 text-sm mb-6 opacity-90">Anda memiliki otoritas sebagai <b>{{ strtoupper($role) }}</b> untuk memverifikasi memo ini.</p>
                         
                         <div class="flex flex-col gap-3">
-                            {{-- Tombol Approve --}}
-                            <button onclick="confirmApprove({{ $memo->id }})" class="w-full bg-white text-blue-800 font-bold py-3 rounded-2xl hover:bg-blue-50 transition-all flex items-center justify-center">
-                                <i data-lucide="check-circle" class="w-4 h-4 mr-2"></i> Approve Sekarang
+                            <button onclick="confirmApprove({{ $memo->id }})" class="w-full bg-white text-blue-900 font-black py-3 rounded-2xl hover:bg-blue-50 transition-all flex items-center justify-center shadow-lg">
+                                <i data-lucide="check-circle" class="w-4 h-4 mr-2 text-green-600"></i> Berikan Tanda Tangan
                             </button>
 
-                            {{-- Tombol Reject (Dimunculkan kembali sesuai permintaan) --}}
-                            <form action="{{ route('memos.reject', $memo->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menolak/membatalkan memo ini?')">
+                            @if(in_array($role, ['bm', 'manager', 'gm', 'direksi']))
+                            <form action="{{ route('memos.reject', $memo->id) }}" method="POST" onsubmit="return confirm('Tolak memo ini?')">
                                 @csrf
                                 <button type="submit" class="w-full bg-red-900/40 text-red-100 font-bold py-3 rounded-2xl hover:bg-red-600 hover:text-white transition-all border border-red-400/30 flex items-center justify-center">
-                                    <i data-lucide="x-circle" class="w-4 h-4 mr-2"></i> Tolak Dokumen
+                                    <i data-lucide="x-circle" class="w-4 h-4 mr-2"></i> Reject Dokumen
                                 </button>
                             </form>
+                            @endif
                         </div>
                     </div>
                 @endif
-            @endif
-
-            {{-- Tombol Edit untuk Draf --}}
-            @if($memo->is_draft && Auth::id() == $memo->user_id)
-                <div class="bg-amber-50 rounded-3xl border border-amber-200 p-6">
-                    <h3 class="text-amber-800 font-bold mb-4 flex items-center text-sm">
-                        <i data-lucide="info" class="w-4 h-4 mr-2"></i> Memo Masih Draf
-                    </h3>
-                    <div class="flex flex-col gap-3">
-                        <a href="{{ route('memos.edit', $memo->id) }}" class="w-full bg-white border border-amber-200 text-amber-700 font-bold py-3 rounded-2xl text-center hover:bg-amber-100 transition-all">
-                            Edit Kembali
-                        </a>
-                        <form action="{{ route('memos.publish', $memo->id) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-2xl shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center">
-                                <i data-lucide="send" class="w-4 h-4 mr-2"></i> Terbitkan Sekarang
-                            </button>
-                        </form>
-                    </div>
-                </div>
             @endif
         </div>
 
         {{-- Konten Utama Memo --}}
         <div class="lg:col-span-8 space-y-8">
-            
+            {{-- ... (bagian konten memo tetap sama) ... --}}
             <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden relative">
                 <div class="h-2 w-full bg-red-800"></div>
 
                 <div class="p-8 md:p-12">
                     <div class="flex justify-between items-start mb-10 pb-8 border-b border-gray-100">
                         <div class="space-y-1">
-                            <h1 class="text-3xl font-black text-gray-900 tracking-tighter uppercase italic">INTERNAL <span class="text-red-800 tracking-normal">MEMO</span></h1>
-                            <p class="text-xs font-bold text-gray-400 tracking-widest uppercase">E-Memo Management System</p>
+                            <h1 class="text-3xl font-black text-gray-900 tracking-tighter uppercase italic text-red-800">INTERNAL MEMO</h1>
+                            <p class="text-xs font-bold text-gray-400 tracking-widest uppercase">Gratama Management System</p>
                         </div>
                         <div class="text-right">
                             <div class="inline-block p-4 bg-gray-50 rounded-2xl border border-gray-100">
@@ -197,7 +189,7 @@
 
                     <div class="bg-gray-50/50 rounded-2xl p-6 mb-12 border border-gray-100/50">
                         <span class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] block mb-2 text-center">Perihal / Subjek</span>
-                        <h2 class="text-xl md:text-2xl font-black text-gray-900 text-center leading-tight uppercase">
+                        <h2 class="text-xl md:text-2xl font-black text-gray-900 text-center leading-tight uppercase italic">
                             "{{ $memo->subject }}"
                         </h2>
                     </div>
@@ -215,13 +207,13 @@
                                 <i data-lucide="check-circle" class="absolute -right-2 -bottom-2 w-16 h-16 text-green-500/5"></i>
                                 
                                 <span class="text-[10px] font-bold text-green-600 uppercase tracking-widest mb-4">Digitally Signed By:</span>
-                                <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black mb-3">
+                                <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black mb-3 border border-blue-100">
                                     {{ substr($approver->name, 0, 1) }}
                                 </div>
                                 <h4 class="font-bold text-gray-800 text-sm text-center line-clamp-1">{{ $approver->name }}</h4>
-                                <p class="text-[10px] font-bold text-gray-400 uppercase">{{ $approver->role }}</p>
+                                <p class="text-[10px] font-bold text-gray-400 uppercase">{{ strtoupper($approver->role) }}</p>
                                 <div class="mt-4 pt-4 border-t border-gray-50 w-full text-center">
-                                    <p class="text-[9px] font-mono text-gray-400 tracking-tighter">{{ \Carbon\Carbon::parse($approver->pivot->created_at)->format('d/m/y H:i:s') }}</p>
+                                    <p class="text-[9px] font-mono text-gray-400 tracking-tighter">{{ $approver->pivot->created_at->format('d/m/y H:i:s') }} WIB</p>
                                     @if($approver->pivot->note)
                                         <p class="mt-2 text-[10px] text-blue-600 italic leading-snug">"{{ $approver->pivot->note }}"</p>
                                     @endif
@@ -263,7 +255,7 @@
             showCancelButton: true,
             confirmButtonColor: '#1e40af', 
             cancelButtonColor: '#94a3b8',
-            confirmButtonText: 'Ya, Setujui',
+            confirmButtonText: 'Ya, Verifikasi Digital',
             cancelButtonText: 'Batal',
             customClass: {
                 popup: 'rounded-[2rem]',
@@ -282,12 +274,4 @@
         });
     }
 </script>
-
-<style>
-    .prose p {
-        margin-bottom: 1.25em;
-        line-height: 1.8;
-        color: #374151;
-    }
-</style>
 @endsection

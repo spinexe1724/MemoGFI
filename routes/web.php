@@ -31,8 +31,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('memos.logs')
         ->middleware('can:is-superadmin');
             Route::post('/memos/{id}/publish', [MemoController::class, 'publish'])->name('memos.publish');
-
+Route::get('/memo/approvals', [MemoController::class, 'pendingApprovals'])->name('memos.approvals');
         Route::get('/memos/my-memos', [MemoController::class, 'myMemos'])->name('memos.my_memos');
+        Route::get('/memos/rejectedMemos', [MemoController::class, 'rejectedMemos'])->name('memos.rejectedMemos');
     Route::get('/memos/drafts', [MemoController::class, 'drafts'])->name('memos.drafts');
          Route::post('/memos/{id}/approve', [MemoController::class, 'approve'])->name('memos.approve');
     Route::post('/memos/{id}/reject', [MemoController::class, 'reject'])->name('memos.reject');
