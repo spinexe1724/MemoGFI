@@ -130,26 +130,40 @@
                 @endphp
 
                 @if($canApprove)
-                    <div class="bg-gradient-to-br from-blue-700 to-indigo-800 rounded-3xl shadow-xl p-6 text-white">
-                        <h3 class="text-lg font-bold mb-2 flex items-center">
-                            <i data-lucide="shield-alert" class="w-5 h-5 mr-2 text-blue-300"></i>
-                            Butuh Approval
-                        </h3>
-                        <p class="text-blue-50 text-sm mb-6 opacity-90">Anda memiliki otoritas sebagai <b>{{ strtoupper($role) }}</b> untuk memverifikasi memo ini.</p>
-                        
-                        <div class="flex flex-col gap-3">
-                            <button onclick="confirmApprove({{ $memo->id }})" class="w-full bg-white text-blue-900 font-black py-3 rounded-2xl hover:bg-blue-50 transition-all flex items-center justify-center shadow-lg">
-                                <i data-lucide="check-circle" class="w-4 h-4 mr-2 text-green-600"></i> Berikan Tanda Tangan
-                            </button>
-
-                            @if(in_array($role, ['bm', 'manager', 'gm', 'direksi']))
-                            <form action="{{ route('memos.reject', $memo->id) }}" method="POST" onsubmit="return confirm('Tolak memo ini?')">
-                                @csrf
-                                <button type="submit" class="w-full bg-red-900/40 text-red-100 font-bold py-3 rounded-2xl hover:bg-red-600 hover:text-white transition-all border border-red-400/30 flex items-center justify-center">
-                                    <i data-lucide="x-circle" class="w-4 h-4 mr-2"></i> Reject Dokumen
+                    {{-- Diubah menjadi Tema Merah Maroon --}}
+                    <div class="bg-white rounded-3xl shadow-xl shadow-red-100 border-2 border-red-800 overflow-hidden">
+                        <div class="bg-red-800 px-6 py-3 flex items-center">
+                            <i data-lucide="shield-check" class="w-5 h-5 mr-2 text-white"></i>
+                            <h3 class="text-sm font-black text-white uppercase tracking-widest">Otoritas Approval</h3>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-gray-900 text-base font-bold leading-relaxed mb-1">
+                                Halo, {{ Auth::user()->name }}
+                            </p>
+                            <p class="text-gray-600 text-sm mb-6">
+                                Dokumen ini memerlukan verifikasi Anda sebagai <span class="text-red-800 font-black underline decoration-red-200 decoration-2">{{ strtoupper($role) }}</span>.
+                            </p>
+                            
+                            <div class="flex flex-col gap-3">
+                                <button onclick="confirmApprove({{ $memo->id }})" class="w-full bg-red-800 text-white font-black py-4 rounded-2xl hover:bg-red-900 transition-all flex items-center justify-center shadow-lg shadow-red-200 group">
+                                    <i data-lucide="pen-tool" class="w-5 h-5 mr-2 transition-transform group-hover:rotate-12"></i> 
+                                    VERIFIKASI & TANDA TANGAN
                                 </button>
-                            </form>
-                            @endif
+
+                                @if(in_array($role, ['bm', 'manager', 'gm', 'direksi']))
+                                <form action="{{ route('memos.reject', $memo->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menolak memo ini?')">
+                                    @csrf
+                                    <button type="submit" class="w-full bg-white text-red-600 font-bold py-3 rounded-2xl hover:bg-red-50 transition-all border border-red-200 flex items-center justify-center">
+                                        <i data-lucide="x-circle" class="w-4 h-4 mr-2"></i> Reject Dokumen
+                                    </button>
+                                </form>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="bg-red-50 px-6 py-3 border-t border-red-100">
+                            <p class="text-[10px] text-red-800 font-bold text-center uppercase tracking-tighter">
+                                Tindakan ini akan dicatat sebagai stempel digital resmi
+                            </p>
                         </div>
                     </div>
                 @endif

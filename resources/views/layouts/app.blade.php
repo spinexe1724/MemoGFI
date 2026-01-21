@@ -27,11 +27,15 @@
 
     <aside id="sidebar" class="fixed top-0 left-0 z-50 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 bg-white border-r border-gray-100 shadow-sm overflow-y-auto">
         
-        <div class="sticky top-0 bg-white z-10 px-6 py-8">
-            <div class="flex items-center justify-center p-2 rounded-2xl bg-gray-50 border border-gray-100 shadow-inner">
-                <img src="{{ asset('images/Capture.PNG') }}" class="h-12 w-auto object-contain" alt="Logo" />
-            </div>
-        </div>
+    <div class="sticky top-0 bg-white z-10 px-6 py-8">
+    {{-- Padding p-2 dikurangi menjadi p-1 agar gambar punya ruang lebih untuk ekspansi --}}
+    <div class="flex items-center justify-center p-1 rounded-2xl bg-gray-50 border border-gray-100 shadow-inner">
+        {{-- Ukuran h-12 diubah menjadi h-16 (lebih besar sekitar 33%) --}}
+        <img src="{{ asset('images/gratam.PNG') }}" 
+             class="h-16 w-auto object-contain transform scale-110 transition-transform" 
+             alt="Logo" />
+    </div>
+    </div>
 
         <nav class="px-4 pb-6 space-y-6">
             {{-- Menu Utama --}}
@@ -146,7 +150,7 @@
         <div class="absolute bottom-6 left-0 w-full px-8">
             <div class="p-4 bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-xl shadow-gray-200 text-center">
                 <p class="text-[10px] text-gray-400 font-medium">Versi Aplikasi</p>
-                <p class="text-xs text-white font-bold">Gratama v2.0.1</p>
+                <p class="text-xs text-black font-bold">Gratama v.1</p>
             </div>
         </div>
     </aside>

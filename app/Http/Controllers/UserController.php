@@ -55,7 +55,7 @@ class UserController extends Controller
             'role' => ['required', 'in:superadmin,gm,direksi,supervisor,admin,ga,bm,manager'],
             'division' => ['nullable'], // Validasi dropdown divisi
                  'level' => ['required_if:role,staff,gm,direksi,superadmin', 'nullable', 'in:2,3'],
-                             'branch' => ['required', 'exists:branches,name'], // Validasi cabang
+                             'branch' => ['required', 'exists:branches,code'], // Validasi cabang
 
         ]);
         
@@ -71,7 +71,7 @@ class UserController extends Controller
             'password' => Hash::make($request->password),
             'role' => $request->role,
             'division' => $request->division,
-                        'branch' => $request->branch,
+            'branch' => $request->branch,
 
             'level' => $level ?? 2, // Fallback ke level 2 jika tidak terdefinisi
         ]);

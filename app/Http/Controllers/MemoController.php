@@ -214,6 +214,22 @@
         /**
         * SHOW: Menampilkan detail memo.
         */
+
+        public function allLogs()
+        {
+            // Proteksi keamanan: Hanya superadmin
+            if (Auth::user()->role !== 'superadmin') {
+                abort(403, 'Hanya Superadmin yang dapat mengakses log global.');
+            }
+
+            // Ambil semua memo tanpa filter visibilitas, gunakan paginasi untuk skalabilitas
+            $memos = Memo::with(['user', 'approvals', 'approver'])
+                ->latest()
+                ->paginate(20);
+
+            return view('memos.logs', compact('memos'));
+        }
+
         public function show($id)
         {
             $user = Auth::user();
@@ -246,6 +262,66 @@
         public function pendingApprovalsCount()
         {
             return self::getPendingCount();
+        }
+        public function edit($id)
+        {
+            $user = Auth::user();
+            $divisions = Division::all();
+            $managers = User::whereIn('role', ['manager', 'bm'])->get();
+            $memo = Memo::with('approvals')->findOrFail($id);
+
+            // Proteksi: Hanya pembuat yang boleh edit
+            if ($memo->user_id !== Auth::id()) {
+                abort(403, 'Anda tidak memiliki hak untuk mengubah memo ini.');
+            }
+
+            // Aturan: Tidak bisa edit jika sudah ditolak atau sirkulasi sudah berjalan (kecuali draf)
+            if (($memo->approvals->count() > 1 && !$memo->is_draft) || $memo->is_rejected) {
+                return redirect()->route('memos.index')->with('error', 'Memo tidak dapat diubah karena sudah dalam proses sirkulasi atau telah ditolak.');
+            }
+
+            return view('memos.edit', compact('memo', 'divisions', 'managers'));
+        }
+
+        /**
+         * UPDATE: Menyimpan perubahan memo ke database.
+         */
+        public function update(Request $request, $id)
+        {
+            $memo = Memo::findOrFail($id);
+            $user = Auth::user();
+
+            if ($memo->user_id !== Auth::id()) abort(403);
+
+            // Validasi sirkulasi
+            if (($memo->approvals->count() > 1 && !$memo->is_draft) || $memo->is_rejected) {
+                return redirect()->route('memos.index')->with('error', 'Gagal update: Memo sudah melewati tahap awal sirkulasi.');
+            }
+
+            $rules = [
+                'recipient'   => 'required|string',
+                'subject'     => 'required|string',
+                'body_text'   => 'required|string',
+                'valid_until' => 'required|date'
+            ];
+            
+            if (in_array($user->role, ['supervisor', 'admin'])) {
+                $rules['approver_id'] = 'required|exists:users,id';
+            }
+
+            $request->validate($rules);
+
+            $memo->update([
+                'recipient'   => $request->recipient,
+                'subject'     => $request->subject,
+                'body_text'   => $request->body_text,
+                'valid_until' => $request->valid_until,
+                'cc_list'     => $request->cc_list,
+                'is_draft'    => $request->input('action') === 'draft',
+                'approver_id' => in_array($user->role, ['supervisor', 'admin']) ? $request->approver_id : $memo->approver_id,
+            ]);
+
+            return redirect()->route('memos.show', $id)->with('success', 'Memo berhasil diperbarui.');
         }
 
         public static function getPendingCount()
