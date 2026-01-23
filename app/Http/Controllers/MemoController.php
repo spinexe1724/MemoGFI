@@ -23,7 +23,7 @@
         }
 
         /**
-        * DASHBOARD: Filter visibilitas memo secara umum.
+        * DASHBOARD: Filter visibilitas memo untuk Dashboard Utama.
         */
         public function index()
         {
@@ -38,13 +38,8 @@
 
                 $isHO = strtoupper(trim($memo->user->branch ?? '')) === 'HO';
 
-                if ($user->role === 'gm') {
-                    return $isHO;
-                }
-
-                if (in_array($user->role, ['admin', 'bm'])) {
-                    return $memo->user->branch === $user->branch;
-                }
+                if ($user->role === 'gm') return $isHO;
+                if (in_array($user->role, ['admin', 'bm'])) return $memo->user->branch === $user->branch;
 
                 $userDiv = strtoupper(trim($user->division ?? ''));
                 $isGAUser = (str_contains($userDiv, 'GA') || str_contains($userDiv, 'AFFAIR'));
@@ -69,91 +64,13 @@
         }
 
         /**
-        * MENU APPROVAL: Menampilkan daftar memo yang menunggu tanda tangan user.
-        */
-        public function pendingApprovals()
-        {
-            $user = Auth::user();
-            $allMemos = Memo::with(['user', 'approvals', 'approver'])
-                ->where('is_draft', false)
-                ->where('is_rejected', false)
-                ->latest()
-                ->get();
-
-            $memos = $allMemos->filter(function($memo) use ($user) {
-                return self::shouldUserApprove($user, $memo);
-            });
-
-            return view('memos.index', [
-                'memos' => $memos,
-                'user' => $user,
-                'pageTitle' => 'Menunggu Persetujuan Anda'
-            ]);
-        }
-
-        /**
-        * CENTRAL LOGIC: Menentukan giliran tanda tangan.
-        * PERBAIKAN: Ditambahkan pengecekan kadaluarsa agar tidak bisa di-approve jika sudah lewat tanggal berlaku.
-        */
-        public static function shouldUserApprove($user, $memo)
-        {
-            // Periksa apakah memo sudah kadaluarsa berdasarkan tanggal valid_until
-            $isExpired = $memo->valid_until ? Carbon::now()->startOfDay()->gt(Carbon::parse($memo->valid_until)) : false;
-
-            // Jika sudah final, sudah tanda tangan, ditolak, draf, ATAU KADALUARSA -> return false
-            if ($memo->is_final || $memo->approvals->contains('id', $user->id) || $memo->is_rejected || $memo->is_draft || $isExpired) {
-                return false;
-            }
-
-            $count = $memo->approvals->count();
-            $creator = $memo->user;
-            $isHO = strtoupper(trim($creator->branch ?? '')) === 'HO';
-            $role = strtolower($user->role);
-            $userDiv = strtoupper(trim($user->division ?? ''));
-            $isGAUser = (str_contains($userDiv, 'GA') || str_contains($userDiv, 'AFFAIR'));
-
-            if (!$isHO) {
-                if ($count == 1 && (in_array($role, ['bm', 'manager'])) && $user->branch === $creator->branch) {
-                    return true;
-                }
-                if ($count == 2 && $isGAUser && $role !== 'supervisor') {
-                    return true;
-                }
-                if ($count >= 3 && $role === 'direksi') {
-                    return true;
-                }
-                return false;
-            }
-
-            if ($role === 'gm' && $isHO) {
-                if (in_array($creator->role, ['manager', 'bm'])) return $count >= 1;
-                return $count >= 2;
-            }
-
-            if ($role === 'direksi' && $isHO) {
-                return $memo->approvals->where('role', 'gm')->count() > 0;
-            }
-
-            if ($isGAUser && str_contains(strtoupper(trim($memo->sender ?? '')), 'GA')) {
-                if ($count == 1 && $role === 'manager') return true;
-                if ($count >= 2 && in_array($role, ['gm', 'direksi'])) return true;
-            }
-
-            if ($count == 1 && $isHO) {
-                if ($user->id == $memo->approver_id) return true;
-                if ($role === 'manager' && $userDiv === strtoupper(trim($creator->division ?? ''))) return true;
-            }
-
-            return false;
-        }
-
-        /**
         * MENU MEMO AKTIF: Menampilkan arsip memo yang sudah FINAL dan belum kadaluarsa.
+        * PERBAIKAN: Admin Cabang & BM kini dapat melihat memo aktif dari cabang mereka sendiri.
         */
         public function myMemos() 
         { 
             $user = Auth::user();
-            $userDiv = $user->division;
+            $userDiv = strtoupper(trim($user->division ?? ''));
 
             $allMemos = Memo::with(['user', 'approvals', 'approver'])
                 ->where('is_draft', false)
@@ -164,23 +81,37 @@
             $memos = $allMemos->filter(function($memo) use ($user, $userDiv) {
                 $ccList = is_array($memo->cc_list) ? $memo->cc_list : [];
                 $isExpired = $memo->valid_until ? Carbon::now()->startOfDay()->gt(Carbon::parse($memo->valid_until)) : false;
-                return $memo->is_final && in_array($userDiv, $ccList) && !$isExpired;
+                
+                // Syarat dasar: Harus Final dan Belum Kadaluarsa
+                if (!$memo->is_final || $isExpired) return false;
+
+                // 1. Pengecekan Level 3 (Direksi): Bypass filter CC
+                if ($user->level == 3) return true;
+
+                // 2. Pengecekan Admin Cabang & BM: Bisa melihat memo aktif di cabangnya
+                if (in_array($user->role, ['admin', 'bm']) && $memo->user->branch === $user->branch) {
+                    return true;
+                }
+
+                // 3. Pengecekan User Lain: Harus ada di daftar CC
+                return in_array($userDiv, $ccList);
             });
 
             return view('memos.index', [
                 'memos' => $memos,
                 'user' => $user,
-                'pageTitle' => 'Arsip Memo Aktif (Tembusan)'
+                'pageTitle' => 'Arsip Memo Aktif'
             ]);
         }
 
         /**
-        * MENU MEMO DITOLAK / KADALUARSA:
+        * MENU MEMO REJECT / KADALUARSA:
+        * PERBAIKAN: Menambahkan visibilitas cabang untuk Admin/BM.
         */
         public function rejectedMemos()
         {
             $user = Auth::user();
-            $userDiv = $user->division;
+            $userDiv = strtoupper(trim($user->division ?? ''));
 
             $allMemos = Memo::with(['user', 'approvals', 'approver'])
                 ->where('is_draft', false)
@@ -191,15 +122,23 @@
                 $isExpired = $memo->valid_until ? Carbon::now()->startOfDay()->gt(Carbon::parse($memo->valid_until)) : false;
                 $isRejected = $memo->is_rejected;
 
+                // Hanya proses jika memang sudah Reject atau Kadaluarsa
                 if (!$isRejected && !$isExpired) return false;
 
+                // 1. Pengecekan Level 3 (Direksi): Bisa melihat semua
+                if ($user->level == 3) return true;
+
+                // 2. Pemilik memo
                 if ($memo->user_id == $user->id) return true;
                 
+                // 3. Admin Cabang & BM: Melihat history reject/expired di cabangnya
+                if (in_array($user->role, ['admin', 'bm']) && $memo->user->branch === $user->branch) {
+                    return true;
+                }
+
+                // 4. Divisi di CC
                 $ccList = is_array($memo->cc_list) ? $memo->cc_list : [];
                 if (in_array($userDiv, $ccList)) return true;
-
-                if ($user->level == 3) return true;
-                if (in_array($user->role, ['admin', 'bm']) && $memo->user->branch === $user->branch) return true;
 
                 return false;
             });
@@ -207,38 +146,72 @@
             return view('memos.index', [
                 'memos' => $memos,
                 'user' => $user,
-                'pageTitle' => 'Arsip Memo Ditolak / Kadaluarsa'
+                'pageTitle' => 'Memo Ditolak / Kadaluarsa'
             ]);
         }
 
         /**
-        * SHOW: Menampilkan detail memo.
+        * LOGIKA APPROVAL SINKRON
         */
+        public static function shouldUserApprove($user, $memo)
+        {
+            $isExpired = $memo->valid_until ? Carbon::now()->startOfDay()->gt(Carbon::parse($memo->valid_until)) : false;
+            if ($memo->is_final || $memo->approvals->contains('id', $user->id) || $memo->is_rejected || $memo->is_draft || $isExpired) return false;
+
+            $count = $memo->approvals->count();
+            $creator = $memo->user;
+            $isHO = strtoupper(trim($creator->branch ?? '')) === 'HO';
+            $role = strtolower($user->role);
+            $userDiv = strtoupper(trim($user->division ?? ''));
+            $isGAUser = (str_contains($userDiv, 'GA') || str_contains($userDiv, 'AFFAIR'));
+
+            if (!$isHO) {
+                if ($count == 1 && in_array($role, ['bm', 'manager']) && $user->branch === $creator->branch) return true;
+                if ($count == 2 && $isGAUser && $role !== 'supervisor') return true;
+                if ($count >= 3 && $role === 'direksi') return true;
+                return false;
+            }
+
+            if ($role === 'gm' && $isHO) {
+                if (in_array($creator->role, ['manager', 'bm'])) return $count >= 1;
+                return $count >= 2;
+            }
+
+            if ($role === 'direksi' && $isHO) return $memo->approvals->where('role', 'gm')->count() > 0;
+
+            if ($isGAUser && str_contains(strtoupper(trim($memo->sender ?? '')), 'GA')) {
+                if ($count == 1 && $role === 'manager') return true;
+                if ($count >= 2 && in_array($role, ['gm', 'direksi'])) return true;
+            }
+
+            if ($count == 1 && $isHO) {
+                if ($user->id == $memo->approver_id) return true;
+                if ($role === 'manager' && $userDiv === strtoupper(trim($creator->division ?? ''))) return true;
+            }
+            return false;
+        }
 
         public function allLogs()
         {
-            // Proteksi keamanan: Hanya superadmin
-            if (Auth::user()->role !== 'superadmin') {
-                abort(403, 'Hanya Superadmin yang dapat mengakses log global.');
-            }
-
-            // Ambil semua memo tanpa filter visibilitas, gunakan paginasi untuk skalabilitas
-            $memos = Memo::with(['user', 'approvals', 'approver'])
-                ->latest()
-                ->paginate(20);
-
+            if (Auth::user()->role !== 'superadmin') abort(403);
+            $memos = Memo::with(['user', 'approvals', 'approver'])->latest()->paginate(20);
             return view('memos.logs', compact('memos'));
+        }
+
+        public function pendingApprovals()
+        {
+            $user = Auth::user();
+            $allMemos = Memo::with(['user', 'approvals', 'approver'])->where('is_draft', false)->where('is_rejected', false)->latest()->get();
+            $memos = $allMemos->filter(fn($m) => self::shouldUserApprove($user, $m));
+            return view('memos.index', ['memos' => $memos, 'user' => $user, 'pageTitle' => 'Menunggu Persetujuan Anda']);
         }
 
         public function show($id)
         {
             $user = Auth::user();
-            $memo = Memo::with(['approvals' => function($query) { 
-                $query->withPivot('note', 'created_at'); 
-            }, 'user', 'approver'])->findOrFail($id);
-            
+            $memo = Memo::with(['approvals' => function($query) { $query->withPivot('note', 'created_at'); }, 'user', 'approver'])->findOrFail($id);
             $canApprove = self::shouldUserApprove($user, $memo);
-
+            
             $isHO = strtoupper(trim($memo->user->branch ?? '')) === 'HO';
             $userDiv = strtoupper(trim($user->division ?? ''));
             $isGAUser = (str_contains($userDiv, 'GA') || str_contains($userDiv, 'AFFAIR'));
@@ -255,72 +228,33 @@
             if (in_array($user->division, $ccList)) $canView = true;
 
             if (!$canView) abort(403);
-
             return view('memos.show', compact('memo', 'user', 'canApprove'));
         }
 
-        public function pendingApprovalsCount()
-        {
-            return self::getPendingCount();
-        }
         public function edit($id)
         {
-            $user = Auth::user();
+            $memo = Memo::with('approvals')->findOrFail($id);
+            if ($memo->user_id !== Auth::id()) abort(403);
+            if (($memo->approvals->count() > 1 && !$memo->is_draft) || $memo->is_rejected) return redirect()->route('memos.index')->with('error', 'Memo tidak dapat diubah.');
             $divisions = Division::all();
             $managers = User::whereIn('role', ['manager', 'bm'])->get();
-            $memo = Memo::with('approvals')->findOrFail($id);
-
-            // Proteksi: Hanya pembuat yang boleh edit
-            if ($memo->user_id !== Auth::id()) {
-                abort(403, 'Anda tidak memiliki hak untuk mengubah memo ini.');
-            }
-
-            // Aturan: Tidak bisa edit jika sudah ditolak atau sirkulasi sudah berjalan (kecuali draf)
-            if (($memo->approvals->count() > 1 && !$memo->is_draft) || $memo->is_rejected) {
-                return redirect()->route('memos.index')->with('error', 'Memo tidak dapat diubah karena sudah dalam proses sirkulasi atau telah ditolak.');
-            }
-
             return view('memos.edit', compact('memo', 'divisions', 'managers'));
         }
 
-        /**
-         * UPDATE: Menyimpan perubahan memo ke database.
-         */
         public function update(Request $request, $id)
         {
             $memo = Memo::findOrFail($id);
-            $user = Auth::user();
-
             if ($memo->user_id !== Auth::id()) abort(403);
-
-            // Validasi sirkulasi
-            if (($memo->approvals->count() > 1 && !$memo->is_draft) || $memo->is_rejected) {
-                return redirect()->route('memos.index')->with('error', 'Gagal update: Memo sudah melewati tahap awal sirkulasi.');
-            }
-
-            $rules = [
-                'recipient'   => 'required|string',
-                'subject'     => 'required|string',
-                'body_text'   => 'required|string',
-                'valid_until' => 'required|date'
-            ];
-            
-            if (in_array($user->role, ['supervisor', 'admin'])) {
-                $rules['approver_id'] = 'required|exists:users,id';
-            }
-
-            $request->validate($rules);
-
+            $request->validate(['recipient' => 'required', 'subject' => 'required', 'body_text' => 'required', 'valid_until' => 'required|date']);
             $memo->update([
-                'recipient'   => $request->recipient,
-                'subject'     => $request->subject,
-                'body_text'   => $request->body_text,
+                'recipient' => $request->recipient,
+                'subject' => $request->subject,
+                'body_text' => $request->body_text,
                 'valid_until' => $request->valid_until,
-                'cc_list'     => $request->cc_list,
-                'is_draft'    => $request->input('action') === 'draft',
-                'approver_id' => in_array($user->role, ['supervisor', 'admin']) ? $request->approver_id : $memo->approver_id,
+                'cc_list' => $request->cc_list,
+                'is_draft' => $request->input('action') === 'draft',
+                'approver_id' => in_array(Auth::user()->role, ['supervisor', 'admin']) ? $request->approver_id : $memo->approver_id,
             ]);
-
             return redirect()->route('memos.show', $id)->with('success', 'Memo berhasil diperbarui.');
         }
 
@@ -334,76 +268,57 @@
 
         public function approve(Request $request, $id)
         {
-            $user = Auth::user();
-            $memo = Memo::findOrFail($id);
-            if ($memo->is_rejected) return back()->with('error', 'Memo sudah ditolak.');
-            
-            // Pengecekan keamanan melalui shouldUserApprove (mencakup cek kadaluarsa)
-            if (!self::shouldUserApprove($user, $memo)) {
-                $isExpired = $memo->valid_until ? Carbon::now()->startOfDay()->gt(Carbon::parse($memo->valid_until)) : false;
-                if ($isExpired) {
-                    return back()->with('error', 'Gagal: Memo ini sudah kadaluarsa dan tidak dapat disetujui lagi.');
-                }
-                return back()->with('error', 'Belum giliran Anda atau kriteria persetujuan tidak terpenuhi.');
-            }
-
-            $memo->approvals()->attach($user->id, ['note' => $request->note ?? 'Disetujui secara digital', 'created_at' => now()]);
-            return redirect()->route('memos.show', $id)->with('success', 'Persetujuan berhasil disimpan.');
+            $user = Auth::user(); $memo = Memo::findOrFail($id);
+            if (!self::shouldUserApprove($user, $memo)) return back()->with('error', 'Gagal memproses tanda tangan.');
+            $memo->approvals()->attach($user->id, ['note' => $request->note ?? 'Disetujui', 'created_at' => now()]);
+            return redirect()->route('memos.show', $id)->with('success', 'Persetujuan berhasil.');
         }
 
         public function reject(Request $request, $id)
         {
-            $user = Auth::user();
-            $memo = Memo::findOrFail($id);
-            if (!self::shouldUserApprove($user, $memo)) return back()->with('error', 'Otoritas ditolak atau memo sudah kadaluarsa.');
+            $user = Auth::user(); $memo = Memo::findOrFail($id);
+            if (!self::shouldUserApprove($user, $memo)) return back()->with('error', 'Otoritas ditolak.');
             $memo->update(['is_rejected' => true]);
-            return redirect()->route('memos.index')->with('success', 'Memo telah ditolak.');
+            return redirect()->route('memos.index')->with('success', 'Memo ditolak.');
         }
 
         public function create() 
         { 
             $user = Auth::user(); $divisions = Division::all(); $managers = User::whereIn('role', ['manager', 'bm'])->get(); 
             if (in_array($user->role, ['bm', 'superadmin'])) return redirect()->route('memos.index');
-            $year = date('Y'); $monthRoman = $this->getRomanMonth(date('n')); $memo = new Memo(); 
+            $year = date('Y'); $monthRoman = $this->getRomanMonth(date('n'));
+            $count = Memo::whereYear('created_at', $year)->where('sender', $user->division)->count() + 1;
+            $divCode = Division::where('name', $user->division)->first()->initial ?? 'DIV';
+            $autoRef = str_pad($count, 3, '0', STR_PAD_LEFT) . "/MI/{$divCode}/{$monthRoman}/{$year}";
+            $memo = new Memo();
             if ($user->role === 'admin') { 
-                $branch = Branch::where('name', $user->branch)->first(); 
-                $refCode = $branch ? $branch->code : ($user->branch ?? 'HO'); 
-                $bm = User::where('role', 'bm')->where('branch', $user->branch)->first(); 
-                if ($bm) { $memo->recipient = 'Branch Manager - ' . $bm->name; $memo->approver_id = $bm->id; } 
-            } else { 
-                $division = Division::where('name', $user->division)->first(); 
-                $refCode = $division ? $division->initial : ($user->division ?? 'DIV'); 
-            } 
-            $count = Memo::whereYear('created_at', $year)->where('sender', $user->division)->count() + 1; $sequence = str_pad($count, 3, '0', STR_PAD_LEFT); $autoRef = "{$sequence}/MI/{$refCode}/{$monthRoman}/{$year}"; 
+                $bm = User::where('role', 'bm')->where('branch', $user->branch)->first();
+                $memo->approver_id = $bm->id ?? null;
+            }
             return view('memos.create', compact('autoRef', 'memo', 'divisions', 'managers')); 
         }
 
         public function store(Request $request) 
         { 
             $user = Auth::user(); if ($user->role === 'bm') return redirect()->route('memos.index');
-            $rules = [ 'reference_no' => 'required|string|unique:memos,reference_no', 'recipient' => 'required', 'subject' => 'required', 'body_text' => 'required', 'valid_until' => 'required|date' ]; 
-            if (in_array($user->role, ['supervisor', 'admin'])) $rules['approver_id'] = 'required|exists:users,id'; 
-            $request->validate($rules); 
-            $memo = Memo::create([ 'user_id' => Auth::id(), 'approver_id' => in_array($user->role, ['supervisor', 'admin']) ? $request->approver_id : null, 'reference_no' => $request->reference_no, 'recipient' => $request->recipient, 'sender' => $user->division, 'subject' => $request->subject, 'body_text' => $request->body_text, 'valid_until' => $request->valid_until, 'cc_list' => $request->cc_list, 'is_draft' => $request->input('action') === 'draft', ]); 
-            if (!$memo->is_draft) { $memo->approvals()->attach(Auth::id(), ['note' => 'Memo Diterbitkan', 'created_at' => now()]); } 
+            $memo = Memo::create([
+                'user_id' => Auth::id(), 'reference_no' => $request->reference_no, 'recipient' => $request->recipient,
+                'sender' => $user->division, 'subject' => $request->subject, 'body_text' => $request->body_text,
+                'valid_until' => $request->valid_until, 'cc_list' => $request->cc_list, 'is_draft' => $request->input('action') === 'draft',
+                'approver_id' => $request->approver_id,
+            ]);
+            if (!$memo->is_draft) $memo->approvals()->attach(Auth::id(), ['note' => 'Memo Diterbitkan', 'created_at' => now()]);
             return redirect()->route('memos.index')->with('success', 'Memo berhasil diproses.'); 
         }
 
         public function drafts() { $memos = Memo::where('user_id', Auth::id())->where('is_draft', true)->latest()->get(); return view('memos.drafts', compact('memos')); }
-        
-        /**
-        * DOWNLOAD / VIEW PDF: Memperbaiki error compact() undefined variable.
-        */
-        public function download(Request $request, $id) 
-        { 
+
+        public function download(Request $request, $id) { 
             $memo = Memo::with(['approvals', 'user'])->findOrFail($id); 
             $status = $memo->is_rejected ? 'DITOLAK' : ($memo->is_final ? 'AKTIF' : 'PENDING'); 
-            
-            // PERBAIKAN: Gunakan string 'status' di dalam compact
             $pdf = Pdf::loadView('pdf.memo', compact('memo', 'status'))->setPaper('a4', 'portrait'); 
-            
             return $request->has('download') ? $pdf->download('memo.pdf') : $pdf->stream('memo.pdf'); 
         }
-        
+
         private function getRomanMonth($month) { $romans = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']; return $romans[$month - 1]; }
     }
