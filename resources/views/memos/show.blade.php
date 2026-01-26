@@ -23,7 +23,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {{-- Sidebar Informasi --}}
-        <div class="lg:col-span-4 space-y-6 lg:sticky lg:top-8">
+        <div class="lg:col-span-3 space-y-6 lg:sticky lg:top-8">
             
             {{-- Status Card --}}
             <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
@@ -171,7 +171,7 @@
         </div>
 
         {{-- Konten Utama Memo --}}
-        <div class="lg:col-span-8 space-y-8">
+        <div class="lg:col-span-9 space-y-8">
             {{-- ... (bagian konten memo tetap sama) ... --}}
             <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden relative">
                 <div class="h-2 w-full bg-red-800"></div>
@@ -212,30 +212,32 @@
                         {!! nl2br($memo->body_text) !!}
                     </div>
 
-                    <div class="border-t-2 border-dashed border-gray-100 pt-12">
-                        <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-8 text-center italic">Digital Signature Verified</h3>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            @foreach($memo->approvals as $approver)
-                            <div class="relative p-6 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col items-center">
-                                <i data-lucide="check-circle" class="absolute -right-2 -bottom-2 w-16 h-16 text-green-500/5"></i>
-                                
-                                <span class="text-[10px] font-bold text-green-600 uppercase tracking-widest mb-4">Digitally Signed By:</span>
-                                <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black mb-3 border border-blue-100">
-                                    {{ substr($approver->name, 0, 1) }}
-                                </div>
-                                <h4 class="font-bold text-gray-800 text-sm text-center line-clamp-1">{{ $approver->name }}</h4>
-                                <p class="text-[10px] font-bold text-gray-400 uppercase">{{ strtoupper($approver->role) }}</p>
-                                <div class="mt-4 pt-4 border-t border-gray-50 w-full text-center">
-                                    <p class="text-[9px] font-mono text-gray-400 tracking-tighter">{{ $approver->pivot->created_at->format('d/m/y H:i:s') }} WIB</p>
-                                    @if($approver->pivot->note)
-                                        <p class="mt-2 text-[10px] text-blue-600 italic leading-snug">"{{ $approver->pivot->note }}"</p>
-                                    @endif
-                                </div>
-                            </div>
-                            @endforeach
-                        </div>
-                    </div>
+                    <div class="border-t-2 border-dashed border-gray-100 pt-8">
+    <h3 class="text-[9px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-6 text-center italic">Digital Signature Verified</h3>
+    
+    <div class="flex flex-row flex-nowrap justify-center gap-3">
+        @foreach($memo->approvals as $approver)
+        <div class="relative p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex flex-col items-center flex-1 min-w-0 max-w-[180px] overflow-hidden">
+            <i data-lucide="check-circle" class="absolute -right-1 -bottom-1 w-10 h-10 text-green-500/5"></i>
+            
+            <span class="text-[8px] font-bold text-green-600 uppercase tracking-tighter mb-2 whitespace-nowrap">Digitally Signed By:</span>
+            
+            <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-black mb-2 border border-blue-100">
+                {{ substr($approver->name, 0, 1) }}
+            </div>
+
+            <h4 class="font-bold text-gray-800 text-[10px] text-center truncate w-full px-1">{{ $approver->name }}</h4>
+            <p class="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">{{ strtoupper($approver->role) }}</p>
+            
+            <div class="mt-2 pt-2 border-t border-gray-50 w-full text-center">
+                <p class="text-[7px] font-mono text-gray-400 tracking-tighter">{{ $approver->pivot->created_at->format('d/m/y H:i') }}</p>
+                @if($approver->pivot->note)
+                    <p class="mt-1 text-[8px] text-blue-600 italic truncate px-1" title="{{ $approver->pivot->note }}">"{{ $approver->pivot->note }}"</p>
+                @endif
+            </div>
+        </div>
+        @endforeach
+    </div>
                 </div>
             </div>
 

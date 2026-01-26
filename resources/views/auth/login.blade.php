@@ -27,14 +27,11 @@
                           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                           <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
                         </span>
-                        E - Memo gratama finance
+                        Memo Internal Gratama Finance
                     </div>
                     <h1 class="text-5xl font-extrabold text-white leading-tight">
                         Hubungkan <br> <span class="text-red-500">Divisi</span> Anda.
                     </h1>
-                    <p class="text-slate-400 mt-6 text-lg max-w-sm leading-relaxed">
-                        Sistem korespondensi memo digital yang dirancang untuk efisiensi maksimal dan transparansi data.
-                    </p>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4 mt-8 opacity-40">
