@@ -14,11 +14,11 @@
         </div>
         
         @if(in_array(Auth::user()->role, ['supervisor', 'manager','admin']))
-    <a href="{{ route('memos.create') }}" class="inline-flex items-center justify-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-black rounded-2xl shadow-lg shadow-red-200 transition-all transform hover:-translate-y-1 active:scale-95 border-b-4 border-red-800">
-        <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>
-        BUAT MEMO BARU
-    </a>
-@endif
+            <a href="{{ route('memos.create') }}" class="inline-flex items-center justify-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-black rounded-2xl shadow-lg shadow-red-200 transition-all transform hover:-translate-y-1 active:scale-95 border-b-4 border-red-800">
+                <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>
+                BUAT MEMO BARU
+            </a>
+        @endif
     </div>
 
     {{-- Dashboard Stats --}}
@@ -35,7 +35,6 @@
             <div>
                 <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Pending Review</p>
                 <p class="text-2xl font-black text-gray-800">
-                    {{-- Menghitung memo yang sudah terbit tapi belum FINAL (berdasarkan is_final di model) --}}
                     {{ $memos->filter(fn($m) => !$m->is_final && !$m->is_draft && !$m->is_rejected)->count() }}
                 </p>
             </div>
@@ -64,8 +63,8 @@
                         <th class="pb-4 font-black text-center w-10">ID</th>
                         <th class="pb-4 font-black">Memo Aktif</th>
                         <th class="pb-4 font-black">Pembuat</th>
-                        <th class="pb-4 font-black">Penyetuju</th>
-                        <th class="pb-4 font-black">Status</th>
+                        <th class="pb-4 font-black text-center">Mengetahui</th>
+                        <th class="pb-4 font-black text-center">Penyetuju</th>
                         <th class="pb-4 font-black text-right">Aksi</th>
                     </tr>
                 </thead>
@@ -74,24 +73,38 @@
                         @php
                             $isExpired = $memo->valid_until ? \Carbon\Carbon::now()->startOfDay()->gt(\Carbon\Carbon::parse($memo->valid_until)) : false;
                             
-                            // Logika Mengetahui: Menampilkan Manager yang dipilih (approver) atau Otoritas Divisi
-                            $mengetahui = '-';
-                            if ($memo->user->role === 'supervisor') {
-                                // Menampilkan nama Manager yang dipilih oleh Supervisor
-                                $mengetahui = 'Manager ' . $memo->approver->division ?? 'Manager Belum Dipilih';
-                            } elseif (in_array($memo->user->role, ['gm', 'direksi'])) {
-                                $mengetahui = 'Otoritas Mandiri';
+                            // Logika Tanda Tangan: Cek apakah Manager Penyetuju sudah Tanda Tangan
+                            $targetApproverId = $memo->approver_id;
+                            $hasSigned = $memo->approvals->contains('id', $targetApproverId);
+                            
+                            /**
+                             * Perbaikan Logika Mengetahui:
+                             * Menampilkan nama jika sudah disetujui, jika belum tampilkan "-"
+                             */
+                            if (strtolower($memo->user->role ?? '') === 'manager') {
+                                $mengetahui = '<span class="text-red-800 font-bold">' . $memo->user->name . '</span>';
                             } else {
-                                $mengetahui = 'Manager ' . ($memo->user->division ?? 'Divisi');
+                                if ($hasSigned && $memo->approver) {
+                                    $mengetahui = '<span class="text-red-800 font-bold">' . $memo->approver->name . '</span>';
+                                } else {
+                                    $mengetahui = '-';
+                                }
                             }
 
-                            // Logika Target Approval (Threshold Baru: Supervisor 5, Manager 4)
+                            // Logika Target Approval
                             $target = 5;
                             if ($memo->user->role === 'supervisor') $target = 5;
                             elseif ($memo->user->role === 'manager') $target = 4;
                             elseif (in_array($memo->user->role, ['gm', 'direksi'])) $target = 2;
 
                             $currentSignCount = $memo->approvals->count();
+                            
+                            /**
+                             * PERBAIKAN: Memfilter daftar penyetuju (bubbles)
+                             * 1. Sembunyikan PEMBUAT (user_id)
+                             * 2. Sembunyikan MENGETAHUI (approver_id) agar tidak double tampil
+                             */
+                            $otherApprovers = $memo->approvals->whereNotIn('id', [$memo->user_id, $memo->approver_id]);
                         @endphp
                         <tr class="hover:bg-gray-50/80 transition-colors group">
                             <td class="py-6 text-center text-gray-400 font-mono text-xs">#{{ $memo->id }}</td>
@@ -118,58 +131,68 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="py-6 text-sm text-red-800 font-bold">
-                                {{ $mengetahui }}
+                            <td class="py-6 text-sm text-center">
+                                {!! $mengetahui !!}
                             </td>
                             <td class="py-6">
-    <div class="flex flex-col items-start gap-2">
-        @if($memo->is_draft)
-            <span class="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-black rounded-full border border-amber-200 uppercase tracking-tighter">Draf</span>
-        @elseif($memo->is_rejected)
-            <span class="px-3 py-1 bg-red-100 text-red-700 text-[10px] font-black rounded-full border border-red-200 uppercase tracking-tighter">Ditolak</span>
-        @elseif($isExpired)
-            <span class="px-3 py-1 bg-gray-100 text-gray-600 text-[10px] font-black rounded-full border border-gray-200 uppercase tracking-tighter">Kadaluarsa</span>
-        @elseif($memo->is_final)
-            <span class="px-3 py-1 bg-green-100 text-green-700 text-[10px] font-black rounded-full border border-green-200 uppercase tracking-tighter">Aktif</span>
-        @else
-            <div class="flex flex-col">
-                <span class="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-full border border-blue-200 uppercase tracking-tighter inline-block w-fit">Pending</span>
-                <span class="text-[9px] text-slate-400 font-bold italic mt-1">{{ $currentSignCount }} / {{ $target }} Signatures</span>
-            </div>
-        @endif
-        
-        <div class="flex flex-wrap gap-1.5 mt-1 max-w-[200px]">
-            @foreach($memo->approvals as $approver)
-                <div class="group/name flex items-center bg-slate-50 border border-slate-200 rounded-md px-2 py-0.5" title="Telah Disetujui">
-                    <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1.5 animate-pulse"></div>
-                    <span class="text-[10px] font-bold text-slate-700 whitespace-nowrap">
-                        {{ $approver->name }}
-                    </span>
-                </div>
-            @endforeach
-
-            @if($memo->approvals->count() == 0 && !$memo->is_draft)
-                <span class="text-[10px] text-slate-300 italic">Menunggu tanda tangan pertama...</span>
-            @endif
-        </div>
-    </div>
-</td>
+                                <div class="flex flex-col items-center gap-2">
+                                    @if($memo->is_draft)
+                                        <span class="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-black rounded-full border border-amber-200 uppercase tracking-tighter">Draf</span>
+                                    @elseif($memo->is_rejected)
+                                        <span class="px-3 py-1 bg-red-100 text-red-700 text-[10px] font-black rounded-full border border-red-200 uppercase tracking-tighter">Ditolak</span>
+                                    @elseif($isExpired)
+                                        <span class="px-3 py-1 bg-gray-100 text-gray-600 text-[10px] font-black rounded-full border border-gray-200 uppercase tracking-tighter">Kadaluarsa</span>
+                                    @elseif($memo->is_final)
+                                        <span class="px-3 py-1 bg-green-100 text-green-700 text-[10px] font-black rounded-full border border-green-200 uppercase tracking-tighter">Aktif</span>
+                                    @else
+                                        <div class="flex flex-col items-center">
+                                            <span class="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-full border border-blue-200 uppercase tracking-tighter inline-block w-fit">Pending</span>
+                                            <span class="text-[9px] text-slate-400 font-bold italic mt-1">{{ $currentSignCount }} / {{ $target }} Signatures</span>
+                                        </div>
+                                    @endif
+                                    
+                                    <div class="flex flex-wrap justify-center gap-1.5 mt-1 max-w-[200px]">
+                                        @foreach($otherApprovers as $approver)
+                                            <div class="group/name flex items-center bg-slate-50 border border-slate-200 rounded-md px-2 py-0.5" title="Telah Disetujui">
+                                                <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1.5 animate-pulse"></div>
+                                                <span class="text-[10px] font-bold text-slate-700 whitespace-nowrap">
+                                                    {{ $approver->name }}
+                                                </span>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </td>
                             <td class="py-6 text-right">
                                 <div class="flex items-center justify-end space-x-2">
+                                    {{-- Tombol Detail --}}
                                     <a href="{{ route('memos.show', $memo->id) }}" class="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-blue-600 hover:border-blue-200 hover:shadow-sm transition-all" title="Detail">
                                         <i data-lucide="external-link" class="w-4 h-4"></i>
                                     </a>
                                     
+                                    {{-- Tombol PDF --}}
                                     @if(!$memo->is_rejected)
                                         <a href="{{ route('memos.pdf', $memo->id) }}" target="_blank" class="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-red-600 hover:border-red-200 transition-all" title="View PDF">
                                             <i data-lucide="file-text" class="w-4 h-4"></i>
                                         </a>
                                     @endif
 
-                                    @if(Auth::id() == $memo->user_id && $memo->approvals->count() <= 1 && !$memo->is_rejected)
-                                        <a href="{{ route('memos.edit', $memo->id) }}" class="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-amber-600 hover:border-amber-200 transition-all" title="Edit">
+                                    {{-- Tombol Edit (Hanya jika Draf atau Ditolak) --}}
+                                    @if(Auth::id() == $memo->user_id && ($memo->is_draft || $memo->is_rejected))
+                                        <a href="{{ route('memos.edit', $memo->id) }}" class="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-amber-600 hover:border-amber-200 transition-all" title="Revisi / Edit">
                                             <i data-lucide="edit-3" class="w-4 h-4"></i>
                                         </a>
+                                    @endif
+
+                                    {{-- TOMBOL HAPUS (Khusus Supervisor/Admin pada Draf atau Rejected) --}}
+                                    @if(Auth::id() == $memo->user_id && in_array(Auth::user()->role, ['supervisor', 'admin']) && ($memo->is_draft || $memo->is_rejected))
+                                        <form action="{{ route('memos.destroy', $memo->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus memo ini secara permanen?')" class="inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-red-600 hover:border-red-200 transition-all" title="Hapus Memo">
+                                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                            </button>
+                                        </form>
                                     @endif
                                 </div>
                             </td>
@@ -191,10 +214,8 @@
 
 <script>
     $(document).ready(function() {
-        // Initialize Lucide
         lucide.createIcons();
 
-        // Initialize DataTable
         var table = $('#memoTable').DataTable({
             responsive: true,
             pageLength: 10,
@@ -210,23 +231,19 @@
             },
             dom: '<"flex flex-col md:flex-row justify-between items-center mb-6 gap-4"f l>rt<"flex flex-col md:flex-row justify-between items-center mt-6 gap-4"i p>',
             drawCallback: function() {
-                // Re-initialize icons on table redraw (pagination/search)
                 lucide.createIcons();
-                // Custom style for pagination
                 $('.dataTables_paginate .paginate_button').addClass('rounded-xl border-none font-bold text-xs');
             }
         });
 
-        // Custom Tailwind Styling for DataTables Search Input
         $('.dataTables_filter input').addClass('bg-gray-50 border border-gray-200 rounded-2xl px-5 py-2.5 focus:ring-4 focus:ring-red-50 focus:border-red-800 transition-all outline-none w-72');
         $('.dataTables_length select').addClass('bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 outline-none');
     });
 </script>
 
 <style>
-    /* Mengatasi konflik CSS DataTables dengan Tailwind */
     .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-        background: #991b1b !important; /* Red 800 */
+        background: #991b1b !important;
         color: white !important;
         border: none !important;
         border-radius: 0.75rem !important;
