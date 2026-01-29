@@ -37,7 +37,7 @@ Route::get('/memo/approvals', [MemoController::class, 'pendingApprovals'])->name
     Route::get('/memos/drafts', [MemoController::class, 'drafts'])->name('memos.drafts');
          Route::post('/memos/{id}/approve', [MemoController::class, 'approve'])->name('memos.approve');
     Route::post('/memos/{id}/reject', [MemoController::class, 'reject'])->name('memos.reject');
-    
+    Route::post('/memos/upload-image', [MemoController::class, 'uploadImage'])->name('memos.upload');
     // Rute Generate PDF
     Route::get('/memos/{id}/pdf', [MemoController::class, 'download'])->name('memos.pdf');
 

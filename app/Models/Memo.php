@@ -10,82 +10,41 @@ class Memo extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 
-        'approver_id', 
-        'reference_no', 
-        'recipient', 
-        'sender', 
-        'subject', 
-        'body_text', 
-        'valid_until', 
-        'cc_list', 
-        'is_draft', 
-        'is_rejected'
+        'user_id', 'approver_id', 'reference_no', 'recipient', 'sender', 
+        'subject', 'body_text', 'valid_until', 'cc_list', 'is_draft', 
+        'is_rejected', 'target_approvers' // Kolom baru
     ];
 
-    /**
-     * Konversi otomatis data JSON dari database menjadi Array PHP.
-     */
     protected $casts = [
         'cc_list' => 'array',
+        'target_approvers' => 'array', // Casting array untuk ID terpilih
         'is_draft' => 'boolean',
         'is_rejected' => 'boolean',
     ];
 
-    /**
-     * RELASI UTAMA: Menghubungkan memo dengan pembuatnya (User).
-     * Ini adalah bagian yang menyebabkan error jika tidak ada.
-     */
-    public function user()
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
+    public function user() { return $this->belongsTo(User::class, 'user_id'); }
+    public function approver() { return $this->belongsTo(User::class, 'approver_id'); }
+    public function approvals() { return $this->belongsToMany(User::class, 'memo_approvals')->withPivot('note', 'created_at')->withTimestamps(); }
 
     /**
-     * RELASI APPROVER: Menghubungkan dengan Manager yang ditunjuk untuk menyetujui.
-     */
-    public function approver()
-    {
-        return $this->belongsTo(User::class, 'approver_id');
-    }
-
-    /**
-     * RELASI APPROVALS: Riwayat tanda tangan digital (Pivot Table).
-     */
-    public function approvals()
-    {
-        return $this->belongsToMany(User::class, 'memo_approvals')
-                    ->withPivot('note', 'created_at')
-                    ->withTimestamps();
-    }
-
-    /**
-     * LOGIKA THRESHOLD APPROVAL (HO vs Non-HO)
-     * Menggunakan Accessor: $memo->is_final
+     * LOGIKA FINAL BARU: 
+     * Memo selesai jika Pembuat + Manager Tahap 1 + SEMUA Target terpilih sudah tanda tangan.
      */
     public function getIsFinalAttribute()
     {
         if ($this->is_draft || $this->is_rejected) return false;
 
-        $count = $this->approvals()->count();
-        $creator = $this->user;
+        $signedIds = $this->approvals()->pluck('users.id')->toArray();
+        $targetIds = $this->target_approvers ?? [];
         
-        if (!$creator) return false;
+        // 1. Cek tanda tangan Manager Tahap 1 (approver_id)
+        if ($this->approver_id && !in_array($this->approver_id, $signedIds)) return false;
 
-        $role = strtolower($creator->role);
-        $isHO = strtoupper($creator->branch ?? '') === 'HO';
-
-        // Alur CABANG NON-HO (Admin/Supervisor)
-        // Jalur: Creator -> BM -> GA -> Dir 1 -> Dir 2 (Total 5)
-        if (!$isHO && in_array($role, ['admin', 'supervisor'])) {
-            return $count >= 5;
+        // 2. Cek semua target tambahan (GM/Direksi pilihan)
+        foreach ($targetIds as $id) {
+            if (!in_array($id, $signedIds)) return false;
         }
 
-        // Alur CABANG HO atau Role Lainnya
-        if (in_array($role, ['supervisor', 'admin'])) return $count >= 5;
-        if ($role === 'manager') return $count >= 4;
-        if (in_array($role, ['gm', 'direksi'])) return $count >= 2;
-
-        return $count >= 5;
+        return true;
     }
 }
