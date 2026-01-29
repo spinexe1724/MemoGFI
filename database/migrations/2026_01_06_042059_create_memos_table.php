@@ -18,6 +18,7 @@ return new class extends Migration
     $table->string('recipient');
     $table->string('sender');
     $table->text('cc_list')->nullable();
+    $table->text('target_approvers');
     $table->string('subject');
     $table->boolean('is_draft')->default(true);
     $table->text('body_text');

@@ -63,6 +63,7 @@
                         <th class="pb-4 font-black text-center w-10">ID</th>
                         <th class="pb-4 font-black">Memo Aktif</th>
                         <th class="pb-4 font-black">Pembuat</th>
+                        <th class="pb-4 font-black text-center">Tgl Dibuat</th>
                         <th class="pb-4 font-black text-center">Mengetahui</th>
                         <th class="pb-4 font-black text-center">Penyetuju</th>
                         <th class="pb-4 font-black text-right">Aksi</th>
@@ -73,14 +74,9 @@
                         @php
                             $isExpired = $memo->valid_until ? \Carbon\Carbon::now()->startOfDay()->gt(\Carbon\Carbon::parse($memo->valid_until)) : false;
                             
-                            // Logika Tanda Tangan: Cek apakah Manager Penyetuju sudah Tanda Tangan
                             $targetApproverId = $memo->approver_id;
                             $hasSigned = $memo->approvals->contains('id', $targetApproverId);
                             
-                            /**
-                             * Perbaikan Logika Mengetahui:
-                             * Menampilkan nama jika sudah disetujui, jika belum tampilkan "-"
-                             */
                             if (strtolower($memo->user->role ?? '') === 'manager') {
                                 $mengetahui = '<span class="text-red-800 font-bold">' . $memo->user->name . '</span>';
                             } else {
@@ -91,7 +87,6 @@
                                 }
                             }
 
-                            // Logika Target Approval
                             $target = 5;
                             if ($memo->user->role === 'supervisor') $target = 5;
                             elseif ($memo->user->role === 'manager') $target = 4;
@@ -99,11 +94,6 @@
 
                             $currentSignCount = $memo->approvals->count();
                             
-                            /**
-                             * PERBAIKAN: Memfilter daftar penyetuju (bubbles)
-                             * 1. Sembunyikan PEMBUAT (user_id)
-                             * 2. Sembunyikan MENGETAHUI (approver_id) agar tidak double tampil
-                             */
                             $otherApprovers = $memo->approvals->whereNotIn('id', [$memo->user_id, $memo->approver_id]);
                         @endphp
                         <tr class="hover:bg-gray-50/80 transition-colors group">
@@ -112,8 +102,9 @@
                                 <div class="flex flex-col">
                                     <span class="font-extrabold text-gray-900 group-hover:text-blue-700 transition-colors">{{ $memo->subject }}</span>
                                     <span class="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wider">{{ $memo->reference_no }}</span>
+                                    
                                     <div class="mt-2 flex items-center text-[10px]">
-                                        <i data-lucide="calendar" class="w-3 h-3 mr-1 text-gray-300"></i>
+                                        <i data-lucide="calendar-days" class="w-3 h-3 mr-1 text-gray-300"></i>
                                         <span class="{{ $isExpired ? 'text-red-500 font-bold' : 'text-gray-400 font-medium' }}">
                                             Exp: {{ $memo->valid_until ? \Carbon\Carbon::parse($memo->valid_until)->format('d M Y') : '∞' }}
                                         </span>
@@ -131,6 +122,12 @@
                                     </div>
                                 </div>
                             </td>
+                            <td class="py-6 text-center" data-order="{{ $memo->created_at->timestamp }}">
+                                <div class="flex flex-col items-center">
+                                    <span class="text-sm font-bold text-gray-700">{{ $memo->created_at->format('d M Y') }}</span>
+                                    <span class="text-[10px] text-gray-400 font-mono">{{ $memo->created_at->format('H:i') }} WIB</span>
+                                </div>
+                            </td>
                             <td class="py-6 text-sm text-center">
                                 {!! $mengetahui !!}
                             </td>
@@ -139,7 +136,17 @@
                                     @if($memo->is_draft)
                                         <span class="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-black rounded-full border border-amber-200 uppercase tracking-tighter">Draf</span>
                                     @elseif($memo->is_rejected)
-                                        <span class="px-3 py-1 bg-red-100 text-red-700 text-[10px] font-black rounded-full border border-red-200 uppercase tracking-tighter">Ditolak</span>
+                                        <div class="flex flex-col items-center">
+                                            <span class="px-3 py-1 bg-red-100 text-red-700 text-[10px] font-black rounded-full border border-red-200 uppercase tracking-tighter">Ditolak</span>
+                                            @php
+                                                $rejectionNote = $memo->approvals->where('note', '!=', 'Memo Diterbitkan')->last()->pivot->note ?? null;
+                                            @endphp
+                                            @if($rejectionNote)
+                                                <p class="text-[9px] text-red-600 italic mt-1 font-medium text-center line-clamp-2 max-w-[150px]" title="{{ $rejectionNote }}">
+                                                    "{{ $rejectionNote }}"
+                                                </p>
+                                            @endif
+                                        </div>
                                     @elseif($isExpired)
                                         <span class="px-3 py-1 bg-gray-100 text-gray-600 text-[10px] font-black rounded-full border border-gray-200 uppercase tracking-tighter">Kadaluarsa</span>
                                     @elseif($memo->is_final)
@@ -165,26 +172,23 @@
                             </td>
                             <td class="py-6 text-right">
                                 <div class="flex items-center justify-end space-x-2">
-                                    {{-- Tombol Detail --}}
                                     <a href="{{ route('memos.show', $memo->id) }}" class="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-blue-600 hover:border-blue-200 hover:shadow-sm transition-all" title="Detail">
                                         <i data-lucide="external-link" class="w-4 h-4"></i>
                                     </a>
                                     
-                                    {{-- Tombol PDF --}}
                                     @if(!$memo->is_rejected)
                                         <a href="{{ route('memos.pdf', $memo->id) }}" target="_blank" class="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-red-600 hover:border-red-200 transition-all" title="View PDF">
                                             <i data-lucide="file-text" class="w-4 h-4"></i>
                                         </a>
                                     @endif
 
-                                    {{-- Tombol Edit (Hanya jika Draf atau Ditolak) --}}
-                                    @if(Auth::id() == $memo->user_id && ($memo->is_draft || $memo->is_rejected))
+                                    {{-- PERBAIKAN LOGIKA: Izinkan edit jika draf, ditolak, ATAU jika belum ditanda tangani manager (Sign count <= 1) --}}
+                                    @if(Auth::id() == $memo->user_id && ($memo->is_draft || $memo->is_rejected || (!$memo->is_final && $currentSignCount <= 1)))
                                         <a href="{{ route('memos.edit', $memo->id) }}" class="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-amber-600 hover:border-amber-200 transition-all" title="Revisi / Edit">
                                             <i data-lucide="edit-3" class="w-4 h-4"></i>
                                         </a>
                                     @endif
 
-                                    {{-- TOMBOL HAPUS (Khusus Supervisor/Admin pada Draf atau Rejected) --}}
                                     @if(Auth::id() == $memo->user_id && in_array(Auth::user()->role, ['supervisor', 'admin']) && ($memo->is_draft || $memo->is_rejected))
                                         <form action="{{ route('memos.destroy', $memo->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus memo ini secara permanen?')" class="inline">
                                             @csrf
@@ -219,6 +223,7 @@
         var table = $('#memoTable').DataTable({
             responsive: true,
             pageLength: 10,
+            order: [[3, 'desc']], 
             language: {
                 search: "",
                 searchPlaceholder: "Cari subjek atau nomor memo...",

@@ -83,6 +83,54 @@
                     <p class="text-[10px] text-gray-400 mt-1 italic">* Wajib dipilih kembali jika ingin merubah manager penanggung jawab.</p>
                 </div>
                 @endif
+                <div class="md:col-span-3">
+                    <label class="block text-sm font-bold text-red-800 mb-3 uppercase tracking-widest flex items-center">
+                        <i data-lucide="shield-check" class="w-5 h-5 mr-2"></i> Persetujuan Lanjutan (Flexible)
+                    </label>
+                    <div class="bg-red-50/50 border border-red-100 rounded-2xl p-6 space-y-6">
+                        @if(Auth::user()->role === 'admin')
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-xs font-black text-gray-500 uppercase mb-2 tracking-tighter">2. Penyetuju Manager Divisi HO (Hanya 1)</label>
+                                  
+                                    @php
+                        $selectedCC = old('target_approver', $memo->target_approver) ?? [];
+                        if (is_string($selectedCC)) {
+                            $decoded = json_decode($selectedCC, true);
+                            $selectedCC = (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) ? $decoded : array_map('trim', explode(',', $selectedCC));
+                        }
+                        $selectedCC = array_filter((array)$selectedCC);
+                    @endphp
+                                    <select name="target_approvers[]" id="manager_ho_select" class="w-full" required>
+                                        <option value="">-- Pilih Manager Divisi --</option>
+                                        @foreach($managers->where('role', 'manager') as $mHO)
+                                            <option value="{{ $mHO->id }}" {{ (is_array(old('target_approvers')) && in_array($mHO->id, old('target_approvers'))) ? 'selected' : '' }}>{{ $mHO->name }} ({{ $mHO->division }})</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-black text-gray-500 uppercase mb-2 tracking-tighter">3. Penyetuju Direksi (Opsional)</label>
+                                    <select name="target_approvers[]" id="direksi_select" class="w-full" multiple="multiple">
+                                        <option value="all">-- Pilih Semua Direksi --</option>
+                                        @foreach($flexibleApprovers->where('role', 'direksi') as $dir)
+                                            <option value="{{ $dir->id }}" {{ (is_array(old('target_approvers')) && in_array($dir->id, old('target_approvers'))) ? 'selected' : '' }}>{{ $dir->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        @else
+                            <div>
+                                <label class="block text-xs font-black text-gray-500 uppercase mb-2 tracking-tighter">Pilih Penyetuju Lanjutan (GM / Direksi)</label>
+                                <select name="target_approvers[]" id="approver_select" class="w-full" multiple="multiple">
+                                    <option value="all">-- Pilih Semua --</option>
+                                    @foreach($flexibleApprovers->whereIn('role', ['direksi', 'gm']) as $fApprover)
+                                        <option value="{{ $fApprover->id }}" {{ (is_array(old('target_approvers')) && in_array($fApprover->id, old('target_approvers'))) ? 'selected' : '' }}>{{ $fApprover->name }} ({{ strtoupper($fApprover->role) }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
+                    </div>
+                </div>
 
                 <!-- Baris 3: Tembusan (CC) -->
                 <div class="md:col-span-3">
@@ -153,32 +201,77 @@
 <script src="https://unpkg.com/lucide@latest"></script>
 
 <script>
+    class MyUploadAdapter {
+        constructor(loader) { this.loader = loader; }
+        upload() {
+            return this.loader.file.then(file => new Promise((resolve, reject) => {
+                const data = new FormData();
+                data.append('upload', file);
+                $.ajax({
+                    url: "{{ route('memos.upload') }}",
+                    type: 'POST',
+                    data: data,
+                    processData: false,
+                    contentType: false,
+                    headers: { 'X-CSRF-TOKEN': "{{ csrf_token() }}" },
+                    success: response => resolve({ default: response.url }),
+                    error: (xhr) => reject(xhr.responseJSON?.error?.message || 'Gagal mengunggah gambar.')
+                });
+            }));
+        }
+        abort() {}
+    }
+
+    function MyCustomUploadAdapterPlugin(editor) {
+        editor.plugins.get('FileRepository').createUploadAdapter = (loader) => {
+            return new MyUploadAdapter(loader);
+        };
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
         lucide.createIcons();
+        $('#cc_select').select2({ placeholder: " Klik untuk memilih divisi...", allowClear: true, width: '100%' });
+        $('#approver_select').select2({ placeholder: " Pilih GM/Direksi...", allowClear: true, width: '100%' });
+        $('#manager_ho_select').select2({ placeholder: " Pilih 1 Manager Divisi (HO)...", allowClear: true, width: '100%' });
+        const $direksiSelect = $('#direksi_select').select2({ placeholder: " Pilih Direksi...", allowClear: true, width: '100%' });
 
-        // Inisialisasi Select2
-        const $ccSelect = $('#cc_select').select2({
-            placeholder: " Pilih divisi tembusan...",
-            allowClear: true,
-            width: '100%'
-        });
-
-        // Logika "Pilih Semua"
-        $ccSelect.on('select2:select', function (e) {
+        $direksiSelect.on('select2:select', function (e) {
             if (e.params.data.id === 'all') {
-                const allDivisions = $('#cc_select option').map(function() {
-                    return ($(this).val() !== 'all' && $(this).val() !== '') ? $(this).val() : null;
-                }).get();
-                $ccSelect.val(allDivisions).trigger('change');
+                const allIds = $('#direksi_select option').map(function() { return ($(this).val() !== 'all' && $(this).val() !== '') ? $(this).val() : null; }).get();
+                $direksiSelect.val(allIds).trigger('change');
             }
         });
 
-        // Inisialisasi CKEditor
-        ClassicEditor
-            .create(document.querySelector('#editor'), {
-                toolbar: [ 'heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', 'undo', 'redo' ]
-            })
-            .catch(error => console.error(error));
+        ClassicEditor.create(document.querySelector('#editor'), {
+            extraPlugins: [ MyCustomUploadAdapterPlugin ],
+            toolbar: { 
+                items: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'imageUpload', 'insertTable', 'blockQuote', 'undo', 'redo'] 
+            },
+            // DIUBAH: KONFIGURASI EDIT GAMBAR (ditambahkan resizeImage dan opsi lebih banyak)
+            image: {
+                toolbar: [
+                    'imageStyle:inline', 
+                    'imageStyle:block', 
+                    'imageStyle:side', 
+                    '|', 
+                    'toggleImageCaption', 
+                    'imageTextAlternative',
+                    '|',  // DIUBAH: Tambahkan separator
+                    'resizeImage'  // DIUBAH: TAMBAHKAN INI: Mengaktifkan resize via toolbar dan handle visual
+                ],
+                // Mengaktifkan fitur resize via toolbar atau handle (jika build mendukung)
+                resizeUnit: '%',
+                resizeOptions: [
+                    { name: 'resizeImage:original', value: null, label: 'Original' },
+                    { name: 'resizeImage:25', value: '25', label: '25%' },
+                    { name: 'resizeImage:50', value: '50', label: '50%' },
+                    { name: 'resizeImage:75', value: '75', label: '75%' },
+                    { name: 'resizeImage:100', value: '100', label: '100%' },  // DIUBAH: Tambahkan opsi 100%
+                    { name: 'resizeImage:150', value: '150', label: '150%' },  // DIUBAH: Tambahkan opsi lebih besar
+                    { name: 'resizeImage:200', value: '200', label: '200%' }   // DIUBAH: Tambahkan opsi lebih besar
+                ]
+            }
+        }).catch(error => console.error(error));
     });
 </script>
 @endsection

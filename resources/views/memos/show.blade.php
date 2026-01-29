@@ -11,6 +11,18 @@
             Kembali ke Daftar Memo
         </a>
         <div class="flex items-center space-x-3">
+            {{-- PERBAIKAN LOGIKA: Tombol Edit muncul jika Draf, Ditolak, atau baru ditanda tangani pembuat (Sign count <= 1) --}}
+            @php
+                $currentSignCount = $memo->approvals->count();
+            @endphp
+
+            @if(Auth::id() == $memo->user_id && ($memo->is_draft || $memo->is_rejected || (!$memo->is_final && $currentSignCount <= 1)))
+                <a href="{{ route('memos.edit', $memo->id) }}" class="inline-flex items-center px-4 py-2 bg-amber-600 text-white text-sm font-bold rounded-xl shadow-sm hover:bg-amber-700 transition-all">
+                    <i data-lucide="edit-3" class="w-4 h-4 mr-2"></i>
+                    Edit / Revisi Memo
+                </a>
+            @endif
+
             @if(!$memo->is_rejected)
                 <a href="{{ route('memos.pdf', $memo->id) }}" target="_blank" class="inline-flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-xl shadow-sm hover:bg-gray-50 transition-all">
                     <i data-lucide="printer" class="w-4 h-4 mr-2 text-gray-400"></i>
@@ -100,60 +112,37 @@
             </div>
 
             {{-- LOGIKA APPROVAL PANEL --}}
-            @if(!$memo->is_draft && !$memo->is_final && !$memo->is_rejected && !$memo->approvals->contains('id', Auth::id()))
-                @php
-                    $user = Auth::user();
-                    $role = $user->role;
-                    $div = $user->division;
-                    $count = $memo->approvals->count();
-                    $creator = $memo->user;
-                    $isHO = strtoupper($creator->branch ?? '') === 'HO';
-                    $canApprove = false;
+            @if($canApprove)
+                <div class="bg-white rounded-3xl shadow-xl shadow-red-100 border-2 border-red-800 overflow-hidden">
+                    <div class="bg-red-800 px-6 py-3 flex items-center">
+                        <i data-lucide="shield-check" class="w-5 h-5 mr-2 text-white"></i>
+                        <h3 class="text-sm font-black text-white uppercase tracking-widest">Otoritas Approval</h3>
+                    </div>
+                    <div class="p-6">
+                        <p class="text-gray-900 text-base font-bold leading-relaxed mb-1">
+                            Halo, {{ Auth::user()->name }}
+                        </p>
+                        <p class="text-gray-600 text-sm mb-6">
+                            Dokumen ini memerlukan verifikasi Anda sebagai <span class="text-red-800 font-black underline decoration-red-200 decoration-2">{{ strtoupper(Auth::user()->role) }}</span>.
+                        </p>
+                        
+                        <div class="flex flex-col gap-3">
+                            <button type="button" onclick="confirmApprove({{ $memo->id }})" class="w-full bg-red-800 text-white font-black py-4 rounded-2xl hover:bg-red-900 transition-all flex items-center justify-center shadow-lg shadow-red-200 group">
+                                <i data-lucide="pen-tool" class="w-5 h-5 mr-2 transition-transform group-hover:rotate-12"></i> 
+                                VERIFIKASI & TANDA TANGAN
+                            </button>
 
-                    if (!$isHO && in_array($creator->role, ['admin', 'supervisor'])) {
-                        if ($count == 1 && ($role === 'bm' || $role === 'manager')) $canApprove = true; 
-                        if ($count == 2 && $div === 'GA') $canApprove = true;      
-                        if ($count >= 3 && $role === 'direksi') $canApprove = true; 
-                    } 
-                    else {
-                        if (Auth::id() == $memo->approver_id) $canApprove = true;
-                        if (in_array($role, ['gm', 'direksi', 'bm'])) $canApprove = true;
-                        if ($role === 'manager' && $user->division == $memo->user->division) $canApprove = true;
-                    }
-                @endphp
-
-                @if($canApprove)
-                    <div class="bg-white rounded-3xl shadow-xl shadow-red-100 border-2 border-red-800 overflow-hidden">
-                        <div class="bg-red-800 px-6 py-3 flex items-center">
-                            <i data-lucide="shield-check" class="w-5 h-5 mr-2 text-white"></i>
-                            <h3 class="text-sm font-black text-white uppercase tracking-widest">Otoritas Approval</h3>
-                        </div>
-                        <div class="p-6">
-                            <p class="text-gray-900 text-base font-bold leading-relaxed mb-1">
-                                Halo, {{ Auth::user()->name }}
-                            </p>
-                            <p class="text-gray-600 text-sm mb-6">
-                                Dokumen ini memerlukan verifikasi Anda sebagai <span class="text-red-800 font-black underline decoration-red-200 decoration-2">{{ strtoupper($role) }}</span>.
-                            </p>
-                            
-                            <div class="flex flex-col gap-3">
-                                <button onclick="confirmApprove({{ $memo->id }})" class="w-full bg-red-800 text-white font-black py-4 rounded-2xl hover:bg-red-900 transition-all flex items-center justify-center shadow-lg shadow-red-200 group">
-                                    <i data-lucide="pen-tool" class="w-5 h-5 mr-2 transition-transform group-hover:rotate-12"></i> 
-                                    VERIFIKASI & TANDA TANGAN
-                                </button>
-
-                                <button type="button" onclick="confirmReject({{ $memo->id }})" class="w-full bg-white text-red-600 font-bold py-3 rounded-2xl hover:bg-red-50 transition-all border border-red-200 flex items-center justify-center">
-                                    <i data-lucide="x-circle" class="w-4 h-4 mr-2"></i> Reject Dokumen
-                                </button>
-                            </div>
-                        </div>
-                        <div class="bg-red-50 px-6 py-3 border-t border-red-100">
-                            <p class="text-[10px] text-red-800 font-bold text-center uppercase tracking-tighter">
-                                Tindakan ini akan dicatat sebagai stempel digital resmi
-                            </p>
+                            <button type="button" onclick="confirmReject({{ $memo->id }})" class="w-full bg-white text-red-600 font-bold py-3 rounded-2xl hover:bg-red-50 transition-all border border-red-200 flex items-center justify-center">
+                                <i data-lucide="x-circle" class="w-4 h-4 mr-2"></i> Reject Dokumen
+                            </button>
                         </div>
                     </div>
-                @endif
+                    <div class="bg-red-50 px-6 py-3 border-t border-red-100">
+                        <p class="text-[10px] text-red-800 font-bold text-center uppercase tracking-tighter">
+                            Tindakan ini akan dicatat sebagai stempel digital resmi
+                        </p>
+                    </div>
+                </div>
             @endif
         </div>
 

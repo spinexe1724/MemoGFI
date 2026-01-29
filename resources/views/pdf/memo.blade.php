@@ -89,6 +89,7 @@
             page-break-inside: avoid; 
         }
         
+        /* CSS Signature Box (Tidak Dirubah) */
         .table-sig { 
             width: 100%; 
             border-collapse: collapse; 
@@ -102,7 +103,7 @@
             text-align: center; 
             height: 110px; 
         }
-        /* ... sisa CSS signature box tetap sama ... */
+        
         .sig-header { font-weight: bold; font-size: 8px; border-bottom: 1px solid #000; padding-bottom: 3px; margin-bottom: 8px; display: block; height: 18px; overflow: hidden; }
         .sig-space { height: 55px; position: relative; display: table; width: 100%; }
         .mark-approved { display: table-cell; vertical-align: middle; color: green; font-weight: bold; font-size: 9px; line-height: 1.2; }
@@ -149,8 +150,50 @@
     <div class="line"></div>
 
     <div class="content">
-        {{-- Hapus nl2br karena CKEditor menghasilkan HTML bersih --}}
-        {!! $memo->body_text !!}
+        @php
+            $body = $memo->body_text;
+
+            /**
+             * LOGIKA PERBAIKAN GAMBAR: KONVERSI KE BASE64
+             * Hal ini wajib agar Dompdf dapat merender gambar tanpa kendala jaringan atau GD extension.
+             */
+            $body = preg_replace_callback('/<img[^>]+src="([^">]+)"/i', function($matches) {
+                $src = $matches[1];
+                $fullPath = null;
+                
+                if (strpos($src, 'storage/') !== false) {
+                    $parts = explode('storage/', $src);
+                    $relativePath = end($parts);
+                    
+                    $paths = [
+                        public_path('storage/' . $relativePath),
+                        storage_path('app/public/' . $relativePath),
+                    ];
+
+                    foreach ($paths as $path) {
+                        if (file_exists($path)) {
+                            $fullPath = $path;
+                            break;
+                        }
+                    }
+                }
+
+                if ($fullPath && file_exists($fullPath)) {
+                    try {
+                        $extension = pathinfo($fullPath, PATHINFO_EXTENSION);
+                        $data = file_get_contents($fullPath);
+                        $base64 = 'data:image/' . $extension . ';base64,' . base64_encode($data);
+                        return str_replace($src, $base64, $matches[0]);
+                    } catch (\Exception $e) {
+                        return $matches[0];
+                    }
+                }
+
+                return $matches[0];
+            }, $body);
+        @endphp
+
+        {!! $body !!}
     </div>
 
     <div class="footer-container">
@@ -159,7 +202,6 @@
                 DITOLAK: MEMO INI TELAH DIBATALKAN DAN TIDAK BERLAKU
             </div>
         @elseif($memo->approvals->count() > 0)
-            {{-- Konten signature box tetap sama dengan perbaikan kolom yang kita buat sebelumnya --}}
             @php
                 $columnCount = $memo->approvals->count() > 5 ? 3 : $memo->approvals->count();
                 if($columnCount < 2) $columnCount = 2; 
