@@ -110,11 +110,18 @@
                     $isHO = strtoupper($creator->branch ?? '') === 'HO';
                     $canApprove = false;
 
+                    // Logika Urutan Approval Cabang NON-HO (Admin/Supervisor)
                     if (!$isHO && in_array($creator->role, ['admin', 'supervisor'])) {
+                        // 1. Creator (count=1) -> Menunggu BM
                         if ($count == 1 && ($role === 'bm' || $role === 'manager')) $canApprove = true; 
+                        
+                        // 2. BM Approved (count=2) -> Menunggu GA
                         if ($count == 2 && $div === 'GA') $canApprove = true;      
+                        
+                        // 3. GA Approved (count >= 3) -> Menunggu Direksi
                         if ($count >= 3 && $role === 'direksi') $canApprove = true; 
                     } 
+                    // Logika HO / Standar
                     else {
                         if (Auth::id() == $memo->approver_id) $canApprove = true;
                         if (in_array($role, ['gm', 'direksi', 'bm'])) $canApprove = true;
@@ -123,6 +130,7 @@
                 @endphp
 
                 @if($canApprove)
+                    {{-- Diubah menjadi Tema Merah Maroon --}}
                     <div class="bg-white rounded-3xl shadow-xl shadow-red-100 border-2 border-red-800 overflow-hidden">
                         <div class="bg-red-800 px-6 py-3 flex items-center">
                             <i data-lucide="shield-check" class="w-5 h-5 mr-2 text-white"></i>
@@ -142,9 +150,14 @@
                                     VERIFIKASI & TANDA TANGAN
                                 </button>
 
-                                <button type="button" onclick="confirmReject({{ $memo->id }})" class="w-full bg-white text-red-600 font-bold py-3 rounded-2xl hover:bg-red-50 transition-all border border-red-200 flex items-center justify-center">
-                                    <i data-lucide="x-circle" class="w-4 h-4 mr-2"></i> Reject Dokumen
-                                </button>
+                                @if(in_array($role, ['bm', 'manager', 'gm', 'direksi']))
+                                <form action="{{ route('memos.reject', $memo->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menolak memo ini?')">
+                                    @csrf
+                                    <button type="submit" class="w-full bg-white text-red-600 font-bold py-3 rounded-2xl hover:bg-red-50 transition-all border border-red-200 flex items-center justify-center">
+                                        <i data-lucide="x-circle" class="w-4 h-4 mr-2"></i> Reject Dokumen
+                                    </button>
+                                </form>
+                                @endif
                             </div>
                         </div>
                         <div class="bg-red-50 px-6 py-3 border-t border-red-100">
@@ -159,6 +172,7 @@
 
         {{-- Konten Utama Memo --}}
         <div class="lg:col-span-9 space-y-8">
+            {{-- ... (bagian konten memo tetap sama) ... --}}
             <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden relative">
                 <div class="h-2 w-full bg-red-800"></div>
 
@@ -199,32 +213,31 @@
                     </div>
 
                     <div class="border-t-2 border-dashed border-gray-100 pt-8">
-                        <h3 class="text-[9px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-6 text-center italic">Digital Signature Verified</h3>
-                        
-                        <div class="flex flex-row flex-nowrap justify-center gap-3">
-                            @foreach($memo->approvals as $approver)
-                            <div class="relative p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex flex-col items-center flex-1 min-w-0 max-w-[180px] overflow-hidden">
-                                <i data-lucide="check-circle" class="absolute -right-1 -bottom-1 w-10 h-10 text-green-500/5"></i>
-                                
-                                <span class="text-[8px] font-bold text-green-600 uppercase tracking-tighter mb-2 whitespace-nowrap">Digitally Signed By:</span>
-                                
-                                <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-black mb-2 border border-blue-100">
-                                    {{ substr($approver->name, 0, 1) }}
-                                </div>
+    <h3 class="text-[9px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-6 text-center italic">Digital Signature Verified</h3>
+    
+    <div class="flex flex-row flex-nowrap justify-center gap-3">
+        @foreach($memo->approvals as $approver)
+        <div class="relative p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex flex-col items-center flex-1 min-w-0 max-w-[180px] overflow-hidden">
+            <i data-lucide="check-circle" class="absolute -right-1 -bottom-1 w-10 h-10 text-green-500/5"></i>
+            
+            <span class="text-[8px] font-bold text-green-600 uppercase tracking-tighter mb-2 whitespace-nowrap">Digitally Signed By:</span>
+            
+            <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-black mb-2 border border-blue-100">
+                {{ substr($approver->name, 0, 1) }}
+            </div>
 
-                                <h4 class="font-bold text-gray-800 text-[10px] text-center truncate w-full px-1">{{ $approver->name }}</h4>
-                                <p class="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">{{ strtoupper($approver->role) }}</p>
-                                
-                                <div class="mt-2 pt-2 border-t border-gray-50 w-full text-center">
-                                    <p class="text-[7px] font-mono text-gray-400 tracking-tighter">{{ $approver->pivot->created_at->format('d/m/y H:i') }}</p>
-                                    @if($approver->pivot->note)
-                                        <p class="mt-1 text-[8px] {{ str_contains($approver->pivot->note, 'Ditolak') ? 'text-red-600 font-bold' : 'text-blue-600' }} italic truncate px-1" title="{{ $approver->pivot->note }}">"{{ $approver->pivot->note }}"</p>
-                                    @endif
-                                </div>
-                            </div>
-                            @endforeach
-                        </div>
-                    </div>
+            <h4 class="font-bold text-gray-800 text-[10px] text-center truncate w-full px-1">{{ $approver->name }}</h4>
+            <p class="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">{{ strtoupper($approver->role) }}</p>
+            
+            <div class="mt-2 pt-2 border-t border-gray-50 w-full text-center">
+                <p class="text-[7px] font-mono text-gray-400 tracking-tighter">{{ $approver->pivot->created_at->format('d/m/y H:i') }}</p>
+                @if($approver->pivot->note)
+                    <p class="mt-1 text-[8px] text-blue-600 italic truncate px-1" title="{{ $approver->pivot->note }}">"{{ $approver->pivot->note }}"</p>
+                @endif
+            </div>
+        </div>
+        @endforeach
+    </div>
                 </div>
             </div>
 
@@ -241,12 +254,6 @@
 <form id="approve-form-{{ $memo->id }}" action="{{ route('memos.approve', $memo->id) }}" method="POST" style="display:none;">
     @csrf
     <input type="hidden" name="note" id="note-input-{{ $memo->id }}">
-</form>
-
-{{-- Form Tersembunyi untuk Reject --}}
-<form id="reject-form-{{ $memo->id }}" action="{{ route('memos.reject', $memo->id) }}" method="POST" style="display:none;">
-    @csrf
-    <input type="hidden" name="note" id="reject-note-input-{{ $memo->id }}">
 </form>
 
 <script src="https://unpkg.com/lucide@latest"></script>
@@ -275,40 +282,6 @@
             if (result.isConfirmed) {
                 const form = document.getElementById('approve-form-' + memoId);
                 const input = document.getElementById('note-input-' + memoId);
-                if (form && input) {
-                    input.value = result.value || 'Disetujui secara digital';
-                    form.submit();
-                }
-            }
-        });
-    }
-
-    function confirmReject(memoId) {
-        Swal.fire({
-            title: 'Alasan Penolakan',
-            text: "Mohon berikan alasan penolakan agar pembuat memo dapat melakukan revisi yang sesuai:",
-            input: 'textarea',
-            inputPlaceholder: 'Contoh: Lampiran tidak lengkap / Perbaiki rincian biaya...',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#991b1b', // Red 800
-            cancelButtonColor: '#94a3b8',
-            confirmButtonText: 'Ya, Tolak Dokumen',
-            cancelButtonText: 'Batal',
-            inputValidator: (value) => {
-                if (!value) {
-                    return 'Alasan penolakan wajib diisi!'
-                }
-            },
-            customClass: {
-                popup: 'rounded-[2rem]',
-                confirmButton: 'rounded-xl px-6 py-3 font-bold',
-                cancelButton: 'rounded-xl px-6 py-3 font-bold'
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                const form = document.getElementById('reject-form-' + memoId);
-                const input = document.getElementById('reject-note-input-' + memoId);
                 if (form && input) {
                     input.value = result.value;
                     form.submit();
