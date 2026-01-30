@@ -6,6 +6,7 @@ use App\Models\Memo;
 use App\Models\Division;
 use App\Models\User;
 use App\Models\Branch; 
+use App\Models\MemoAttachment;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
@@ -16,18 +17,21 @@ use App\Notifications\MemoApprovalNotification;
 use App\Notifications\MemoRejectedNotification;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class MemoController extends Controller implements HasMiddleware
 {
+    /**
+     * Mengatur Middleware untuk kontrol akses.
+     */
     public static function middleware(): array
     {
-        return [
-            new Middleware('auth'),
-        ];
+        return [new Middleware('auth')];
     }
 
     /**
-     * FUNGSI NOTIFIKASI BERANTAI (Targeted/Flexible)
+     * FUNGSI NOTIFIKASI BERANTAI
+     * Mengirim notifikasi ke tahap approval berikutnya secara otomatis.
      */
     private function notifyNextApprover(Memo $memo)
     {
@@ -42,7 +46,7 @@ class MemoController extends Controller implements HasMiddleware
                 if ($target) $nextApprovers->push($target);
             }
         } 
-        // Tahap 2: Ke Jajaran GM/Direksi yang dipilih (Tanda tangan ke-3 dan seterusnya)
+        // Tahap 2: Ke Jajaran GM/Direksi yang dipilih (Tanda tangan ke-3 dst)
         elseif ($count >= 2 && !$memo->is_final) {
             $selectedIds = $memo->target_approvers ?? [];
             if (!empty($selectedIds)) {
@@ -56,7 +60,7 @@ class MemoController extends Controller implements HasMiddleware
     }
 
     /**
-     * DASHBOARD: Menampilkan memo yang relevan bagi user.
+     * DASHBOARD UTAMA
      */
     public function index()
     {
@@ -69,13 +73,9 @@ class MemoController extends Controller implements HasMiddleware
             if ($memo->user_id == $user->id) return true;
             if ($memo->is_draft) return false;
             
-            // Hak Lihat Global untuk Direksi & GM
             if ($user->level == 3 || $user->role === 'gm') return true;
-            
-            // Hak Lihat Cabang
             if (in_array($user->role, ['admin', 'bm']) && $memo->user->branch === $user->branch) return true;
 
-            // Hak Lihat Berdasarkan CC (Hanya jika memo sudah Final)
             $ccArray = is_array($memo->cc_list) ? $memo->cc_list : [];
             if (in_array($user->division, $ccArray)) return $memo->is_final;
 
@@ -86,7 +86,27 @@ class MemoController extends Controller implements HasMiddleware
     }
 
     /**
-     * MENU ARSIP MEMO AKTIF: Menampilkan memo yang sudah FINAL dan belum expired.
+     * MENU: MEMO SAYA
+     * Menampilkan semua memo yang dibuat oleh user sendiri.
+     */
+    public function myOwnMemos()
+    {
+        $user = Auth::user();
+        $memos = Memo::with(['user', 'approvals', 'approver'])
+                    ->where('user_id', $user->id)
+                    ->where('is_draft', false)
+                    ->latest()
+                    ->get();
+
+        return view('memos.index', [
+            'memos' => $memos, 
+            'user' => $user, 
+            'pageTitle' => 'Daftar Memo Saya'
+        ]);
+    }
+
+    /**
+     * MENU: MEMO AKTIF (ARSIP PERUSAHAAN)
      */
     public function myMemos() 
     { 
@@ -98,7 +118,6 @@ class MemoController extends Controller implements HasMiddleware
 
         $memos = $allMemos->filter(function($memo) use ($user) {
             $isExpired = $memo->valid_until ? Carbon::now()->startOfDay()->gt(Carbon::parse($memo->valid_until)) : false;
-            
             if (!$memo->is_final || $isExpired) return false;
             if ($memo->user_id == $user->id) return true;
             if ($user->level == 3 || $user->role === 'gm') return true;
@@ -108,11 +127,11 @@ class MemoController extends Controller implements HasMiddleware
             return in_array($user->division, $ccList);
         });
 
-        return view('memos.index', ['memos' => $memos, 'user' => $user, 'pageTitle' => 'Arsip Memo Aktif']);
+        return view('memos.index', ['memos' => $memos, 'user' => $user, 'pageTitle' => 'Database Memo Aktif']);
     }
 
     /**
-     * MENU MEMO DITOLAK / KADALUARSA
+     * MENU: MEMO DITOLAK / KADALUARSA
      */
     public function rejectedMemos()
     {
@@ -134,7 +153,7 @@ class MemoController extends Controller implements HasMiddleware
     }
 
     /**
-     * MENU DRAF: Memo milik user yang belum diterbitkan.
+     * MENU: DRAF
      */
     public function drafts() 
     { 
@@ -143,7 +162,7 @@ class MemoController extends Controller implements HasMiddleware
     }
 
     /**
-     * MENU APPROVAL: Menampilkan daftar memo yang butuh tanda tangan user login.
+     * MENU: PERSETUJUAN (PENDING APPROVAL)
      */
     public function pendingApprovals()
     {
@@ -154,72 +173,50 @@ class MemoController extends Controller implements HasMiddleware
     }
 
     /**
-     * FORM EDIT: Digunakan untuk draf atau revisi memo yang ditolak.
+     * FORM: BUAT MEMO
      */
-    public function edit($id)
-    {
-        $memo = Memo::with('approvals')->findOrFail($id);
-        if ($memo->user_id !== Auth::id()) abort(403);
-
-        // Edit diizinkan jika status Draf atau Ditolak (Revisi)
-        if (!$memo->is_draft && !$memo->is_rejected && ($memo->approvals->count() > 1 || $memo->is_final)) {
-            return redirect()->route('memos.index')->with('error', 'Memo sedang diproses atau sudah final.');
-        }
-
+    public function create() 
+    { 
+        $user = Auth::user();
         $divisions = Division::all();
-        $managers = User::whereIn('role', ['manager', 'bm'])->get();
+        $managers = User::whereIn('role', ['manager', 'bm'])->get(); 
         $flexibleApprovers = User::whereIn('role', ['gm', 'direksi', 'ga'])->get();
 
-        return view('memos.edit', compact('memo', 'divisions', 'managers', 'flexibleApprovers'));
+        if (in_array($user->role, ['bm', 'superadmin'])) return redirect()->route('memos.index');
+
+        $divCode = Division::where('name', $user->division)->first()->initial ?? 'DIV';
+        $year = date('Y');
+        $monthRoman = $this->getRomanMonth(date('n'));
+        $count = Memo::whereYear('created_at', $year)->where('sender', $user->division)->count() + 1;
+        
+        if ($user->role === 'admin') {
+            $branchData = Branch::where('code', $user->branch)->first();
+            $refIdentifier = $branchData ? $branchData->code : ($user->branch ?? 'CBG');
+        } else {
+            $refIdentifier = $divCode;
+        }
+
+        $autoRef = str_pad($count, 3, '0', STR_PAD_LEFT) . "/MI/{$refIdentifier}/{$monthRoman}/{$year}";
+        $memo = new Memo();
+
+        if ($user->role === 'admin') { 
+            $bm = User::where('role', 'bm')->where('branch', $user->branch)->first();
+            $memo->approver_id = $bm->id ?? null;
+        }
+
+        return view('memos.create', compact('autoRef', 'memo', 'divisions', 'managers', 'flexibleApprovers')); 
     }
 
     /**
-     * FUNGSI UPDATE: Memperbarui data dan mereset tanda tangan jika ini adalah revisi.
+     * FUNGSI: SIMPAN MEMO (STORE)
      */
-    public function update(Request $request, $id)
-    {
-        $memo = Memo::findOrFail($id);
-        if ($memo->user_id !== Auth::id()) abort(403);
-        
-        $request->validate([
-            'recipient' => 'required', 'subject' => 'required', 
-            'body_text' => 'required', 'valid_until' => 'required|date'
-        ]);
-
-        $isActionPublish = $request->input('action') === 'publish';
-        $wasRejected = $memo->is_rejected;
-        $wasDraft = $memo->is_draft;
-
-        $memo->update([
-            'recipient'   => $request->recipient,
-            'subject'     => $request->subject,
-            'body_text'   => $request->body_text,
-            'valid_until' => $request->valid_until,
-            'cc_list'     => $request->cc_list,
-            'is_draft'    => $request->input('action') === 'draft',
-            'is_rejected' => false, 
-            'approver_id' => $request->approver_id,
-            'target_approvers' => $request->target_approvers,
-        ]);
-
-        if ($isActionPublish) {
-            if ($wasRejected) {
-                // Hapus riwayat tanda tangan lama jika revisi agar mulai dari nol lagi
-                $memo->approvals()->detach();
-                $memo->approvals()->attach(Auth::id(), ['note' => 'Memo Direvisi & Diajukan Kembali', 'created_at' => now()]);
-            } elseif ($wasDraft) {
-                if (!$memo->approvals()->where('user_id', Auth::id())->exists()) {
-                    $memo->approvals()->attach(Auth::id(), ['note' => 'Memo Diterbitkan', 'created_at' => now()]);
-                }
-            }
-            $this->notifyNextApprover($memo);
-        }
-
-        return redirect()->route('memos.show', $id)->with('success', 'Memo berhasil diperbarui.');
-    }
-
     public function store(Request $request) 
     { 
+        $request->validate([
+            'reference_no' => 'required',
+            'attachments.*' => 'nullable|mimes:docx,xlsx,pdf,pptx,zip|max:10240',
+        ]);
+
         $memo = Memo::create([
             'user_id' => Auth::id(), 
             'reference_no' => $request->reference_no, 
@@ -234,132 +231,226 @@ class MemoController extends Controller implements HasMiddleware
             'target_approvers' => $request->target_approvers,
         ]);
 
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $path = $file->store('memo_attachments', 'public');
+                $memo->attachments()->create([
+                    'file_path' => $path,
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_type' => $file->getClientOriginalExtension(),
+                ]);
+            }
+        }
+
         if (!$memo->is_draft) {
             $memo->approvals()->attach(Auth::id(), ['note' => 'Memo Diterbitkan', 'created_at' => now()]);
             $this->notifyNextApprover($memo);
         }
-        return redirect()->route('memos.index')->with('success', 'Memo berhasil diterbitkan.'); 
+        return redirect()->route('memos.index')->with('success', 'Memo berhasil diproses.'); 
     }
 
+    /**
+     * FORM: EDIT MEMO
+     */
+    public function edit($id)
+    {
+        $memo = Memo::with(['approvals', 'attachments'])->findOrFail($id);
+        if ($memo->user_id !== Auth::id()) abort(403);
+
+        $divisions = Division::all();
+        $managers = User::whereIn('role', ['manager', 'bm'])->get();
+        $flexibleApprovers = User::whereIn('role', ['gm', 'direksi', 'ga'])->get();
+
+        return view('memos.edit', compact('memo', 'divisions', 'managers', 'flexibleApprovers'));
+    }
+
+    /**
+     * FUNGSI: UPDATE MEMO
+     */
+    public function update(Request $request, $id)
+    {
+        $memo = Memo::findOrFail($id);
+        if ($memo->user_id !== Auth::id()) abort(403);
+        
+        $request->validate([
+            'recipient' => 'required', 'subject' => 'required', 
+            'body_text' => 'required', 'valid_until' => 'required|date',
+            'attachments.*' => 'nullable|mimes:docx,xlsx,pdf,pptx,zip|max:10240',
+        ]);
+
+        $isActionPublish = $request->input('action') === 'publish';
+        $wasRejected = $memo->is_rejected;
+
+        $memo->update([
+            'recipient'   => $request->recipient,
+            'subject'     => $request->subject,
+            'body_text'   => $request->body_text,
+            'valid_until' => $request->valid_until,
+            'cc_list'     => $request->cc_list,
+            'is_draft'    => $request->input('action') === 'draft',
+            'is_rejected' => false, 
+            'approver_id' => $request->approver_id,
+            'target_approvers' => $request->target_approvers,
+        ]);
+
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $path = $file->store('memo_attachments', 'public');
+                $memo->attachments()->create([
+                    'file_path' => $path,
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_type' => $file->getClientOriginalExtension(),
+                ]);
+            }
+        }
+
+        if ($isActionPublish) {
+            if ($wasRejected) {
+                $memo->approvals()->detach();
+                $memo->approvals()->attach(Auth::id(), ['note' => 'Memo Direvisi & Diajukan Kembali', 'created_at' => now()]);
+            } elseif ($memo->is_draft) {
+                if (!$memo->approvals()->where('user_id', Auth::id())->exists()) {
+                    $memo->approvals()->attach(Auth::id(), ['note' => 'Memo Diterbitkan', 'created_at' => now()]);
+                }
+            }
+            $this->notifyNextApprover($memo);
+        }
+
+        return redirect()->route('memos.show', $id)->with('success', 'Memo berhasil diperbarui.');
+    }
+
+    /**
+     * DETAIL MEMO (SHOW)
+     */
+    public function show($id) { 
+        $user = Auth::user(); 
+        $memo = Memo::with([
+            'approvals' => function($query) { $query->withPivot('note', 'created_at'); }, 
+            'user', 'approver', 'attachments' 
+        ])->findOrFail($id); 
+        $canApprove = self::shouldUserApprove($user, $memo); 
+        return view('memos.show', compact('memo', 'user', 'canApprove')); 
+    }
+
+    /**
+     * LOGIKA: APAKAH USER BERHAK MENYETUJUI?
+     */
+    public static function shouldUserApprove($user, $memo) {
+        $isExpired = $memo->valid_until ? Carbon::now()->startOfDay()->gt(Carbon::parse($memo->valid_until)) : false;
+        if ($memo->is_final || $memo->approvals->contains('id', $user->id) || $memo->is_rejected || $memo->is_draft || $isExpired) return false;
+        
+        $count = $memo->approvals->count();
+        $selectedIds = $memo->target_approvers ?? [];
+        
+        if ($count == 1 && $user->id == $memo->approver_id) return true;
+        if ($count >= 2 && in_array($user->id, $selectedIds)) return true;
+        
+        return false;
+    }
+
+    /**
+     * FUNGSI: APPROVE (Tanda Tangan)
+     */
     public function approve(Request $request, $id)
     {
-        $user = Auth::user(); $memo = Memo::findOrFail($id);
-        if (!self::shouldUserApprove($user, $memo)) return back()->with('error', 'Otoritas ditolak.');
-        $memo->approvals()->attach($user->id, ['note' => $request->note ?? 'Disetujui', 'created_at' => now()]);
-        $memo->refresh(); 
-        if (!$memo->is_final) $this->notifyNextApprover($memo);
-        return redirect()->route('memos.show', $id)->with('success', 'Persetujuan berhasil.');
+        return DB::transaction(function () use ($id, $request) {
+            $user = Auth::user();
+            $memo = Memo::lockForUpdate()->findOrFail($id);
+            if (!self::shouldUserApprove($user, $memo)) return back()->with('error', 'Otoritas ditolak.');
+            
+            $memo->approvals()->attach($user->id, ['note' => $request->note ?? 'Disetujui secara digital', 'created_at' => now()]);
+            $memo->refresh(); 
+            
+            if (!$memo->is_final) $this->notifyNextApprover($memo);
+            return redirect()->route('memos.show', $id)->with('success', 'Persetujuan berhasil.');
+        });
     }
 
+    /**
+     * FUNGSI: REJECT (Penolakan)
+     */
     public function reject(Request $request, $id)
     {
         $user = Auth::user(); $memo = Memo::with('user')->findOrFail($id);
         if (!self::shouldUserApprove($user, $memo)) return back()->with('error', 'Otoritas ditolak.');
+        
         $reason = $request->note ?? 'Tanpa alasan spesifik';
         $memo->approvals()->attach($user->id, ['note' => 'Ditolak: ' . $reason, 'created_at' => now()]);
         $memo->update(['is_rejected' => true]);
+        
         if ($memo->user) $memo->user->notify(new MemoRejectedNotification($memo, $user->name, $reason));
-        return redirect()->route('memos.index')->with('success', 'Memo ditolak dan dikembalikan ke pembuat.');
+        return redirect()->route('memos.index')->with('success', 'Memo ditolak.');
     }
 
+    /**
+     * FUNGSI: HAPUS PERMANEN
+     */
     public function destroy($id)
     {
         $memo = Memo::findOrFail($id);
-        $user = Auth::user();
-        if ($memo->user_id !== $user->id) return back()->with('error', 'Akses ditolak.');
-        if (!in_array($user->role, ['supervisor', 'admin'])) return back()->with('error', 'Otoritas tidak cukup.');
-        if (!$memo->is_draft && !$memo->is_rejected && $memo->approvals->count() > 1) return back()->with('error', 'Memo tidak dapat dihapus.');
+        if ($memo->user_id !== Auth::id()) abort(403);
+        
+        foreach($memo->attachments as $attachment) {
+            Storage::disk('public')->delete($attachment->file_path);
+        }
+
         $memo->delete();
         return redirect()->route('memos.index')->with('success', 'Memo berhasil dihapus.');
     }
 
     /**
-     * LOGIKA APPROVAL FLEXIBLE & SINKRON
+     * DOWNLOAD: LAMPIRAN
      */
-    public static function shouldUserApprove($user, $memo) 
-    { 
-        $isExpired = $memo->valid_until ? Carbon::now()->startOfDay()->gt(Carbon::parse($memo->valid_until)) : false; 
-        if ($memo->is_final || $memo->approvals->contains('id', $user->id) || $memo->is_rejected || $memo->is_draft || $isExpired) return false; 
-        
-        $count = $memo->approvals->count(); 
-        $selectedIds = $memo->target_approvers ?? [];
-
-        // TAHAP 1: Atasan Langsung (Manager/BM)
-        if ($count == 1) {
-            if ($user->id == $memo->approver_id) return true;
-        }
-
-        // TAHAP 2: Penyetuju Lanjutan (Flexible)
-        if ($count >= 2) {
-            if (in_array($user->id, $selectedIds)) return true;
-        }
-
-        return false; 
+    public function downloadAttachment($id)
+    {
+        $attachment = MemoAttachment::findOrFail($id);
+        if (!Storage::disk('public')->exists($attachment->file_path)) return back()->with('error', 'File tidak ditemukan.');
+        return Storage::disk('public')->download($attachment->file_path, $attachment->file_name);
     }
 
     /**
-     * FUNGSI UPLOAD GAMBAR: Menangani unggahan foto dari CKEditor.
+     * HAPUS: LAMPIRAN
      */
-   public function uploadImage(Request $request)
-{
-    if ($request->hasFile('upload')) {
-        $file = $request->file('upload');
-        $filename = time() . '_' . $file->getClientOriginalName();
-        $path = $file->storeAs('memos', $filename, 'public');
-        
-        return response()->json([
-            'uploaded' => 1, // Kunci utama untuk CKEditor
-            'fileName' => $filename,
-            'url' => asset('storage/' . $path) // URL publik foto
-        ]);
-    }
-    return response()->json(['uploaded' => 0, 'error' => ['message' => 'Gagal mengunggah foto.']], 400);
-}
-
-
-
-    public function create() 
-    { 
-        $user = Auth::user(); $divisions = Division::all(); $managers = User::whereIn('role', ['manager', 'bm'])->get(); 
-        $flexibleApprovers = User::whereIn('role', ['gm', 'direksi', 'ga'])->get();
-        if (in_array($user->role, ['bm', 'superadmin'])) return redirect()->route('memos.index');
-        $divCode = Division::where('name', $user->division)->first()->initial ?? 'DIV';
-        $year = date('Y'); $monthRoman = $this->getRomanMonth(date('n'));
-        $count = Memo::whereYear('created_at', $year)->where('sender', $user->division)->count() + 1;
-        
-        if ($user->role === 'admin') {
-            $branchData = Branch::where('name', $user->branch)->orWhere('code', $user->branch)->first();
-            $refIdentifier = $branchData ? $branchData->code : ($user->branch ?? 'CBG');
-        } else {
-            $refIdentifier = $divCode;
-        }
-
-        $autoRef = str_pad($count, 3, '0', STR_PAD_LEFT) . "/MI/{$refIdentifier}/{$monthRoman}/{$year}";
-        $memo = new Memo();
-        if ($user->role === 'admin') { 
-            $bm = User::where('role', 'bm')->where('branch', $user->branch)->first();
-            $memo->approver_id = $bm->id ?? null;
-        }
-        return view('memos.create', compact('autoRef', 'memo', 'divisions', 'managers', 'flexibleApprovers')); 
+    public function destroyAttachment($id)
+    {
+        $attachment = MemoAttachment::findOrFail($id);
+        if ($attachment->memo->user_id !== Auth::id()) abort(403);
+        Storage::disk('public')->delete($attachment->file_path);
+        $attachment->delete();
+        return back()->with('success', 'Lampiran dihapus.');
     }
 
-    public function show($id) { $user = Auth::user(); $memo = Memo::with(['approvals' => function($query) { $query->withPivot('note', 'created_at'); }, 'user', 'approver'])->findOrFail($id); $canApprove = self::shouldUserApprove($user, $memo); return view('memos.show', compact('memo', 'user', 'canApprove')); }
-    public static function getPendingCount() { $user = Auth::user(); if (!$user) return 0; $memos = Memo::where('is_draft', false)->where('is_rejected', false)->with(['user', 'approvals'])->get(); return $memos->filter(fn($m) => self::shouldUserApprove($user, $m))->count(); }
+    /**
+     * CKEDITOR: UPLOAD GAMBAR
+     */
+    public function uploadImage(Request $request)
+    {
+        if ($request->hasFile('upload')) {
+            $path = $request->file('upload')->store('memos', 'public');
+            return response()->json(['uploaded' => 1, 'url' => asset('storage/' . $path)]);
+        }
+        return response()->json(['uploaded' => 0], 400);
+    }
+
+    /**
+     * PDF EXPORT
+     */
     public function download(Request $request, $id) 
-{
-    $memo = Memo::with(['approvals', 'user'])->findOrFail($id);
-    $status = $memo->is_rejected ? 'DITOLAK' : ($memo->is_final ? 'AKTIF' : 'PENDING');
-    
-    // Tambahkan setOptions untuk mengizinkan gambar remote dan HTML5
-    $pdf = Pdf::loadView('pdf.memo', compact('memo', 'status'))
-        ->setPaper('a4', 'portrait')
-        ->setOptions([
-            'isHtml5ParserEnabled' => true,
-            'isRemoteEnabled' => true, // WAJIB TRUE
-            'defaultFont' => 'sans-serif'
-        ]);
+    {
+        $memo = Memo::with(['approvals', 'user', 'attachments'])->findOrFail($id);
+        $status = $memo->is_rejected ? 'DITOLAK' : ($memo->is_final ? 'AKTIF' : 'PENDING');
+        $pdf = Pdf::loadView('pdf.memo', compact('memo', 'status'))->setPaper('a4', 'portrait')->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true]);
+        return $request->has('download') ? $pdf->download('memo.pdf') : $pdf->stream('memo.pdf');
+    }
 
-    return $request->has('download') ? $pdf->download('memo.pdf') : $pdf->stream('memo.pdf');
-}
-    private function getRomanMonth($month) { $romans = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']; return $romans[$month - 1]; }
+    public static function getPendingCount() {
+        $user = Auth::user();
+        if (!$user) return 0;
+        return Memo::where('is_draft', false)->where('is_rejected', false)->get()->filter(fn($m) => self::shouldUserApprove($user, $m))->count();
+    }
+
+    private function getRomanMonth($month) {
+        $romans = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+        return $romans[$month - 1];
+    }
 }

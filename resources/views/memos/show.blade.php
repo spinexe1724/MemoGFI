@@ -3,6 +3,62 @@
 @section('title', 'Detail Memo - ' . $memo->reference_no)
 
 @section('content')
+<style>
+    /* CSS Tambahan untuk menangani konten dari CKEditor */
+    .ck-content table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin: 1.5rem 0 !important;
+        table-layout: auto !important;
+    }
+    .ck-content table td, 
+    .ck-content table th {
+        border: 1px solid #d1d5db !important;
+        padding: 12px 15px !important;
+        min-width: 2em !important;
+    }
+    .ck-content table th {
+        background-color: #f9fafb !important;
+        font-weight: bold !important;
+        text-align: left !important;
+    }
+    .ck-content .image-style-align-left { float: left; margin-right: 1.5rem; }
+    .ck-content .image-style-align-right { float: right; margin-left: 1.5rem; }
+    .ck-content .image-style-block-align-center { margin-left: auto; margin-right: auto; }
+
+    /* Custom Style untuk Signbox yang lebih jelas */
+    .signature-card {
+        transition: all 0.3s ease;
+        border: 1px solid #eef2f6;
+    }
+    .signature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        border-color: #d1d5db;
+    }
+    .approval-note {
+        position: relative;
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 10px;
+        font-size: 11px;
+        line-height: 1.4;
+        color: #475569;
+        margin-top: 12px;
+        border: 1px solid #e2e8f0;
+    }
+    .approval-note::before {
+        content: '';
+        position: absolute;
+        top: -6px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-bottom: 6px solid #e2e8f0;
+    }
+</style>
+
 <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
     
     <div class="mb-6 flex items-center justify-between">
@@ -11,9 +67,8 @@
             Kembali ke Daftar Memo
         </a>
         <div class="flex items-center space-x-3">
-            {{-- PERBAIKAN LOGIKA: Tombol Edit muncul jika Draf, Ditolak, atau baru ditanda tangani pembuat (Sign count <= 1) --}}
             @php
-                $currentSignCount = $memo->approvals->count();
+                $currentSignCount = $memo->approvals ? $memo->approvals->count() : 0;
             @endphp
 
             @if(Auth::id() == $memo->user_id && ($memo->is_draft || $memo->is_rejected || (!$memo->is_final && $currentSignCount <= 1)))
@@ -36,8 +91,6 @@
         
         {{-- Sidebar Informasi --}}
         <div class="lg:col-span-3 space-y-6 lg:sticky lg:top-8">
-            
-            {{-- Status Card --}}
             <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
                 <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Status Dokumen</h3>
                 @php
@@ -77,7 +130,6 @@
                 </div>
             </div>
 
-            {{-- Meta Info --}}
             <div class="bg-white rounded-3xl shadow-sm border border-gray-100 divide-y divide-gray-50">
                 <div class="p-6">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Meta Informasi</h3>
@@ -99,7 +151,10 @@
                 <div class="p-6">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Tembusan (CC)</h3>
                     <div class="flex flex-wrap gap-2">
-                        @php $ccItems = is_array($memo->cc_list) ? $memo->cc_list : explode(',', $memo->cc_list); @endphp
+                        @php 
+                            $ccList = $memo->cc_list;
+                            $ccItems = is_array($ccList) ? $ccList : (is_string($ccList) ? explode(',', $ccList) : []); 
+                        @endphp
                         @foreach($ccItems as $cc)
                             @if(trim($cc))
                                 <span class="bg-gray-100 text-gray-600 px-3 py-1 rounded-lg text-xs font-medium border border-gray-200">
@@ -111,7 +166,6 @@
                 </div>
             </div>
 
-            {{-- LOGIKA APPROVAL PANEL --}}
             @if($canApprove)
                 <div class="bg-white rounded-3xl shadow-xl shadow-red-100 border-2 border-red-800 overflow-hidden">
                     <div class="bg-red-800 px-6 py-3 flex items-center">
@@ -137,16 +191,11 @@
                             </button>
                         </div>
                     </div>
-                    <div class="bg-red-50 px-6 py-3 border-t border-red-100">
-                        <p class="text-[10px] text-red-800 font-bold text-center uppercase tracking-tighter">
-                            Tindakan ini akan dicatat sebagai stempel digital resmi
-                        </p>
-                    </div>
                 </div>
             @endif
         </div>
 
-        {{-- Konten Utama Memo --}}
+        {{-- Konten Utama --}}
         <div class="lg:col-span-9 space-y-8">
             <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden relative">
                 <div class="h-2 w-full bg-red-800"></div>
@@ -171,45 +220,115 @@
                         </div>
                         <div class="space-y-1 md:text-right">
                             <span class="text-[10px] font-bold text-red-800 uppercase tracking-[0.2em]">Dari</span>
-                            <p class="text-lg font-extrabold text-gray-800">{{ $memo->user->name }}</p>
+                            <p class="text-lg font-extrabold text-gray-800">{{ $memo->user->name ?? 'User' }}</p>
                             <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">{{ $memo->sender }}</p>
                         </div>
                     </div>
 
-                    <div class="bg-gray-50/50 rounded-2xl p-6 mb-12 border border-gray-100/50">
-                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] block mb-2 text-center">Perihal / Subjek</span>
-                        <h2 class="text-xl md:text-2xl font-black text-gray-900 text-center leading-tight uppercase italic">
+                    <div class="bg-gray-50/50 rounded-2xl p-6 mb-12 border border-gray-100/50 text-center">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] block mb-2">Perihal / Subjek</span>
+                        <h2 class="text-xl md:text-2xl font-black text-gray-900 leading-tight uppercase italic">
                             "{{ $memo->subject }}"
                         </h2>
                     </div>
 
-                    <div class="prose prose-lg max-w-none text-gray-700 leading-relaxed mb-16 px-2 min-h-[300px]">
-                        {!! nl2br($memo->body_text) !!}
+                    <div class="ck-content prose prose-lg max-w-none text-gray-700 leading-relaxed mb-12 px-2 min-h-[300px]">
+                        {!! $memo->body_text !!}
                     </div>
 
-                    <div class="border-t-2 border-dashed border-gray-100 pt-8">
-                        <h3 class="text-[9px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-6 text-center italic">Digital Signature Verified</h3>
+                    {{-- SEKSI LAMPIRAN --}}
+                    @if($memo->attachments && $memo->attachments->count() > 0)
+                        <div class="mb-16 bg-slate-50 rounded-3xl p-6 md:p-8 border border-slate-100">
+                            <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center">
+                                <i data-lucide="paperclip" class="w-4 h-4 mr-2"></i> Lampiran Dokumen
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                @foreach($memo->attachments as $file)
+                                    <div class="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all group">
+                                        <div class="flex items-center min-w-0">
+                                            <div class="p-3 bg-blue-50 rounded-xl text-blue-600 mr-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                                @php
+                                                    $ext = strtolower($file->file_type);
+                                                    $icon = 'file-text';
+                                                    if(in_array($ext, ['xlsx', 'xls', 'csv'])) $icon = 'file-spreadsheet';
+                                                    elseif($ext == 'pdf') $icon = 'file-type-2';
+                                                @endphp
+                                                <i data-lucide="{{ $icon }}" class="w-5 h-5"></i>
+                                            </div>
+                                            <div class="truncate">
+                                                <p class="text-sm font-bold text-slate-700 truncate" title="{{ $file->file_name }}">
+                                                    {{ $file->file_name }}
+                                                </p>
+                                                <p class="text-[10px] font-medium text-slate-400 uppercase tracking-tighter">
+                                                    {{ strtoupper($ext) }} Dokumen
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <a href="{{ route('memos.attachment.download', $file->id) }}" 
+                                           class="ml-4 p-2.5 bg-slate-50 text-slate-400 hover:bg-blue-600 hover:text-white rounded-xl transition-all">
+                                            <i data-lucide="download" class="w-4 h-4"></i>
+                                        </a>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- TANDA TANGAN (SIGNBOX) --}}
+                    <div class="border-t-2 border-dashed border-gray-100 pt-12">
+                        <div class="text-center mb-10">
+                            <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em] italic mb-2">Digital Signature Verified</h3>
+                            <div class="h-1 w-20 bg-red-800 mx-auto rounded-full"></div>
+                        </div>
                         
-                        <div class="flex flex-row flex-nowrap justify-center gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             @foreach($memo->approvals as $approver)
-                            <div class="relative p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex flex-col items-center flex-1 min-w-0 max-w-[180px] overflow-hidden">
-                                <i data-lucide="check-circle" class="absolute -right-1 -bottom-1 w-10 h-10 text-green-500/5"></i>
-                                
-                                <span class="text-[8px] font-bold text-green-600 uppercase tracking-tighter mb-2 whitespace-nowrap">Digitally Signed By:</span>
-                                
-                                <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-black mb-2 border border-blue-100">
-                                    {{ substr($approver->name, 0, 1) }}
+                            <div class="signature-card relative p-6 bg-white rounded-[2rem] flex flex-col items-center overflow-hidden">
+                                {{-- Role Header --}}
+                                <div class="w-full text-center mb-4">
+                                    <span class="px-4 py-1 bg-gray-900 text-white text-[9px] font-black uppercase tracking-widest rounded-full">
+                                        {{ strtoupper($approver->role) }}
+                                    </span>
                                 </div>
 
-                                <h4 class="font-bold text-gray-800 text-[10px] text-center truncate w-full px-1">{{ $approver->name }}</h4>
-                                <p class="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">{{ strtoupper($approver->role) }}</p>
-                                
-                                <div class="mt-2 pt-2 border-t border-gray-50 w-full text-center">
-                                    <p class="text-[7px] font-mono text-gray-400 tracking-tighter">{{ $approver->pivot->created_at->format('d/m/y H:i') }}</p>
-                                    @if($approver->pivot->note)
-                                        <p class="mt-1 text-[8px] {{ str_contains($approver->pivot->note, 'Ditolak') ? 'text-red-600 font-bold' : 'text-blue-600' }} italic truncate px-1" title="{{ $approver->pivot->note }}">"{{ $approver->pivot->note }}"</p>
-                                    @endif
+                                {{-- Avatar with Status Icon --}}
+                                <div class="relative mb-4">
+                                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-slate-50 to-slate-100 text-blue-600 flex items-center justify-center text-xl font-black border border-slate-200 shadow-inner">
+                                        {{ substr($approver->name, 0, 1) }}
+                                    </div>
+                                    <div class="absolute -right-2 -bottom-2 bg-green-500 text-white p-1.5 rounded-lg shadow-lg border-2 border-white">
+                                        <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                    </div>
                                 </div>
+
+                                {{-- Name & Division --}}
+                                <div class="text-center mb-2">
+                                    <h4 class="font-black text-gray-900 text-sm tracking-tight">{{ strtoupper($approver->name) }}</h4>
+                                    <p class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">{{ $approver->division }}</p>
+                                </div>
+
+                                {{-- Date/Time --}}
+                                <div class="flex items-center text-[9px] font-mono text-slate-400 bg-slate-50 px-3 py-1 rounded-full mb-2">
+                                    <i data-lucide="clock" class="w-3 h-3 mr-1.5"></i>
+                                    {{ $approver->pivot->created_at->format('d/m/Y H:i') }}
+                                </div>
+
+                                {{-- Approval Note with Speech Bubble Style --}}
+                                @if($approver->pivot->note)
+                                    <div class="w-full">
+                                        <div class="approval-note text-center italic">
+                                            @php
+                                                $isRejected = str_contains(strtolower($approver->pivot->note), 'tolak');
+                                            @endphp
+                                            <span class="{{ $isRejected ? 'text-red-600 font-bold' : 'text-blue-700' }}">
+                                                "{{ $approver->pivot->note }}"
+                                            </span>
+                                        </div>
+                                    </div>
+                                @endif
+                                
+                                {{-- Subtle BG Icon --}}
+                                <i data-lucide="shield-check" class="absolute -right-4 -bottom-4 w-20 h-20 text-slate-50 -z-10"></i>
                             </div>
                             @endforeach
                         </div>
@@ -220,20 +339,19 @@
             <div class="flex justify-center text-gray-400 text-[10px] font-bold uppercase tracking-widest space-x-4">
                 <span>E-Memo ID: {{ $memo->id }}</span>
                 <span>•</span>
-                <span>Hash ID: {{ md5($memo->id . $memo->reference_no) }}</span>
+                <span>Hash: {{ substr(md5($memo->id . $memo->reference_no), 0, 8) }}</span>
             </div>
         </div>
     </div>
 </div>
 
-{{-- Form Tersembunyi untuk Approval --}}
-<form id="approve-form-{{ $memo->id }}" action="{{ route('memos.approve', $memo->id) }}" method="POST" style="display:none;">
+{{-- Hidden Forms --}}
+<form id="approve-form-{{ $memo->id }}" action="{{ route('memos.approve', $memo->id) }}" method="POST" class="hidden">
     @csrf
     <input type="hidden" name="note" id="note-input-{{ $memo->id }}">
 </form>
 
-{{-- Form Tersembunyi untuk Reject --}}
-<form id="reject-form-{{ $memo->id }}" action="{{ route('memos.reject', $memo->id) }}" method="POST" style="display:none;">
+<form id="reject-form-{{ $memo->id }}" action="{{ route('memos.reject', $memo->id) }}" method="POST" class="hidden">
     @csrf
     <input type="hidden" name="note" id="reject-note-input-{{ $memo->id }}">
 </form>
@@ -241,25 +359,23 @@
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    lucide.createIcons();
+    document.addEventListener('DOMContentLoaded', function() {
+        lucide.createIcons();
+    });
 
     function confirmApprove(memoId) {
         Swal.fire({
-            title: 'Konfirmasi Persetujuan',
-            text: "Tambahkan catatan instruksi atau keterangan jika diperlukan:",
+            title: 'Verifikasi Digital',
+            text: "Tambahkan catatan jika diperlukan:",
             input: 'textarea',
-            inputPlaceholder: 'Contoh: Lanjutkan ke tahap selanjutnya...',
+            inputPlaceholder: 'Opsional: Berikan instruksi atau catatan...',
             icon: 'info',
             showCancelButton: true,
             confirmButtonColor: '#1e40af', 
             cancelButtonColor: '#94a3b8',
-            confirmButtonText: 'Ya, Verifikasi Digital',
+            confirmButtonText: 'Tanda Tangani',
             cancelButtonText: 'Batal',
-            customClass: {
-                popup: 'rounded-[2rem]',
-                confirmButton: 'rounded-xl px-6 py-3 font-bold',
-                cancelButton: 'rounded-xl px-6 py-3 font-bold'
-            }
+            customClass: { popup: 'rounded-[2rem]' }
         }).then((result) => {
             if (result.isConfirmed) {
                 const form = document.getElementById('approve-form-' + memoId);
@@ -274,26 +390,20 @@
 
     function confirmReject(memoId) {
         Swal.fire({
-            title: 'Alasan Penolakan',
-            text: "Mohon berikan alasan penolakan agar pembuat memo dapat melakukan revisi yang sesuai:",
+            title: 'Tolak Dokumen',
+            text: "Wajib memberikan alasan penolakan untuk revisi:",
             input: 'textarea',
-            inputPlaceholder: 'Contoh: Lampiran tidak lengkap / Perbaiki rincian biaya...',
+            inputPlaceholder: 'Contoh: Perbaiki rincian biaya atau lampiran tidak lengkap...',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#991b1b', // Red 800
+            confirmButtonColor: '#991b1b',
             cancelButtonColor: '#94a3b8',
-            confirmButtonText: 'Ya, Tolak Dokumen',
+            confirmButtonText: 'Ya, Tolak',
             cancelButtonText: 'Batal',
             inputValidator: (value) => {
-                if (!value) {
-                    return 'Alasan penolakan wajib diisi!'
-                }
+                if (!value) return 'Alasan penolakan wajib diisi!'
             },
-            customClass: {
-                popup: 'rounded-[2rem]',
-                confirmButton: 'rounded-xl px-6 py-3 font-bold',
-                cancelButton: 'rounded-xl px-6 py-3 font-bold'
-            }
+            customClass: { popup: 'rounded-[2rem]' }
         }).then((result) => {
             if (result.isConfirmed) {
                 const form = document.getElementById('reject-form-' + memoId);

@@ -38,6 +38,10 @@ Route::get('/memo/approvals', [MemoController::class, 'pendingApprovals'])->name
          Route::post('/memos/{id}/approve', [MemoController::class, 'approve'])->name('memos.approve');
     Route::post('/memos/{id}/reject', [MemoController::class, 'reject'])->name('memos.reject');
     Route::post('/memos/upload-image', [MemoController::class, 'uploadImage'])->name('memos.upload');
+    Route::get('/memos/my-own', [App\Http\Controllers\MemoController::class, 'myOwnMemos'])->name('memos.own');
+      Route::get('/attachments/{id}/download', [MemoController::class, 'downloadAttachment'])->name('memos.attachment.download');
+    Route::delete('/attachments/{id}', [MemoController::class, 'destroyAttachment'])->name('memos.attachment.destroy');
+
     // Rute Generate PDF
     Route::get('/memos/{id}/pdf', [MemoController::class, 'download'])->name('memos.pdf');
 
