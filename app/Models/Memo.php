@@ -47,4 +47,8 @@ class Memo extends Model
 
         return true;
     }
+    public function attachments()
+{
+    return $this->hasMany(MemoAttachment::class);
+}
 }
