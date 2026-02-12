@@ -39,9 +39,12 @@ Route::get('/memo/approvals', [MemoController::class, 'pendingApprovals'])->name
     Route::post('/memos/{id}/reject', [MemoController::class, 'reject'])->name('memos.reject');
     Route::post('/memos/upload-image', [MemoController::class, 'uploadImage'])->name('memos.upload');
     Route::get('/memos/my-own', [App\Http\Controllers\MemoController::class, 'myOwnMemos'])->name('memos.own');
-      Route::get('/attachments/{id}/download', [MemoController::class, 'downloadAttachment'])->name('memos.attachment.download');
-    Route::delete('/attachments/{id}', [MemoController::class, 'destroyAttachment'])->name('memos.attachment.destroy');
+    Route::delete('/memos/{id}', [MemoController::class, 'destroy'])->name('memos.destroy');
 
+// Rute untuk menghapus LAMPIRAN (Gunakan URL yang berbeda agar tidak tertukar)
+Route::delete('/attachments/{id}', [MemoController::class, 'destroyAttachment'])->name('memos.attachment.destroy');
+      Route::get('/attachments/{id}/download', [MemoController::class, 'downloadAttachment'])->name('memos.attachment.download');
+Route::delete('/attachments/{id}', [MemoController::class, 'destroyAttachment'])->name('memos.attachment.destroy');
     // Rute Generate PDF
     Route::get('/memos/{id}/pdf', [MemoController::class, 'download'])->name('memos.pdf');
 
@@ -59,6 +62,8 @@ Route::get('/memo/approvals', [MemoController::class, 'pendingApprovals'])->name
         Route::resource('users', UserController::class);
         Route::resource('divisions', DivisionController::class)->only(['index', 'store', 'destroy']);
                 Route::resource('branches', BranchController::class);
+                Route::post('/users/{id}/restore', [UserController::class, 'restore'])->name('users.restore');
+Route::delete('/users/{id}/force-delete', [UserController::class, 'forceDelete'])->name('users.force_delete');
 
     });
 

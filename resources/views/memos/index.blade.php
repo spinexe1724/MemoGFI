@@ -74,6 +74,7 @@
                         @php
                             $isExpired = $memo->valid_until ? \Carbon\Carbon::now()->startOfDay()->gt(\Carbon\Carbon::parse($memo->valid_until)) : false;
                             
+                            // Logika "Mengetahui"
                             $targetApproverId = $memo->approver_id;
                             $hasSigned = $memo->approvals->contains('id', $targetApproverId);
                             
@@ -87,6 +88,7 @@
                                 }
                             }
 
+                            // Logika Target Approval
                             $target = 5;
                             if ($memo->user->role === 'supervisor') $target = 5;
                             elseif ($memo->user->role === 'manager') $target = 4;
@@ -94,7 +96,12 @@
 
                             $currentSignCount = $memo->approvals->count();
                             
-                            $otherApprovers = $memo->approvals->whereNotIn('id', [$memo->user_id, $memo->approver_id]);
+                            $excludedIds = [$memo->user_id];
+                            if (strtolower($memo->user->role ?? '') !== 'manager' && $memo->approver_id) {
+                                $excludedIds[] = $memo->approver_id;
+                            }
+
+                            $otherApprovers = $memo->approvals->whereNotIn('id', $excludedIds);
                         @endphp
                         <tr class="hover:bg-gray-50/80 transition-colors group">
                             <td class="py-6 text-center text-gray-400 font-mono text-xs">#{{ $memo->id }}</td>
@@ -141,11 +148,7 @@
                                             @php
                                                 $rejectionNote = $memo->approvals->where('note', '!=', 'Memo Diterbitkan')->last()->pivot->note ?? null;
                                             @endphp
-                                            @if($rejectionNote)
-                                                <p class="text-[9px] text-red-600 italic mt-1 font-medium text-center line-clamp-2 max-w-[150px]" title="{{ $rejectionNote }}">
-                                                    "{{ $rejectionNote }}"
-                                                </p>
-                                            @endif
+                                            
                                         </div>
                                     @elseif($isExpired)
                                         <span class="px-3 py-1 bg-gray-100 text-gray-600 text-[10px] font-black rounded-full border border-gray-200 uppercase tracking-tighter">Kadaluarsa</span>
@@ -182,21 +185,11 @@
                                         </a>
                                     @endif
 
-                                    {{-- PERBAIKAN LOGIKA: Izinkan edit jika draf, ditolak, ATAU jika belum ditanda tangani manager (Sign count <= 1) --}}
-                                    @if(Auth::id() == $memo->user_id && ($memo->is_draft || $memo->is_rejected || (!$memo->is_final && $currentSignCount <= 1)))
+                                    {{-- PERBAIKAN: Izinkan edit jika draf, ditolak, atau masih pending (baru tanda tangan pembuat saja) --}}
+                                    @if(Auth::id() == $memo->user_id && ($memo->is_draft || $memo->is_rejected || (!$memo->is_final && $memo->approvals->count() <= 1)))
                                         <a href="{{ route('memos.edit', $memo->id) }}" class="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-amber-600 hover:border-amber-200 transition-all" title="Revisi / Edit">
                                             <i data-lucide="edit-3" class="w-4 h-4"></i>
                                         </a>
-                                    @endif
-
-                                    @if(Auth::id() == $memo->user_id && in_array(Auth::user()->role, ['supervisor', 'admin']) && ($memo->is_draft || $memo->is_rejected))
-                                        <form action="{{ route('memos.destroy', $memo->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus memo ini secara permanen?')" class="inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-red-600 hover:border-red-200 transition-all" title="Hapus Memo">
-                                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                            </button>
-                                        </form>
                                     @endif
                                 </div>
                             </td>
