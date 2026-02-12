@@ -107,11 +107,18 @@
                             <span class="text-sm">Memo Saya</span>
                         </a>
 
-                        <a href="{{ route('memos.rejectedMemos') }}" class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('memos.rejectedMemos') ? 'bg-gray-100 text-gray-900 font-bold' : 'text-gray-500 hover:bg-gray-50' }}">
-                            <i data-lucide="alert-circle" class="w-5 h-5 mr-3"></i>
-                            <span class="text-sm">Memo Ditolak</span>
-                        </a>
+                   {{-- PERBAIKAN: Gunakan pengecekan parameter filter agar tidak double active --}}
+        <a href="{{ route('memos.rejectedMemos', ['filter' => 'rejected']) }}" 
+           class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ (request()->routeIs('memos.rejectedMemos') && request('filter') === 'rejected') ? 'bg-gray-100 text-gray-900 font-bold border-l-4 border-red-600' : 'text-gray-500 hover:bg-gray-50' }}">
+            <i data-lucide="alert-circle" class="w-5 h-5 mr-3 text-red-600"></i>
+            <span class="text-sm">Memo Ditolak</span>
+        </a>
 
+        <a href="{{ route('memos.rejectedMemos', ['filter' => 'expired']) }}" 
+           class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ (request()->routeIs('memos.rejectedMemos') && request('filter') === 'expired') ? 'bg-gray-100 text-gray-900 font-bold border-l-4 border-amber-500' : 'text-gray-500 hover:bg-gray-50' }}">
+            <i data-lucide="calendar-x" class="w-5 h-5 mr-3 text-amber-500"></i>
+            <span class="text-sm">Memo Kadaluarsa</span>
+        </a>
                         <a href="{{ route('memos.drafts') }}" class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('memos.drafts') ? 'bg-gray-100 text-gray-900 font-bold' : 'text-gray-500 hover:bg-gray-50' }}">
                             <i data-lucide="archive" class="w-5 h-5 mr-3"></i>
                             <span class="text-sm">Memo Draf</span>

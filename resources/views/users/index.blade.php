@@ -8,8 +8,9 @@
 <div class="py-10 px-4">
     <div class="max-w-7xl mx-auto">
         
+        {{-- Header Panel --}}
         <div class="relative bg-gradient-to-r from-red-800 to-red-700 p-8 rounded-3xl text-red overflow-hidden shadow-2xl mb-8">
-            <div class="relative z-10 flex justify-between items-center">
+            <div class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
                 <div>
                     <h2 class="text-3xl font-extrabold tracking-tight">User Management</h2>
                     <p class="text-red-700 mt-2 opacity-90 flex items-center">
@@ -17,13 +18,40 @@
                         Kelola hak akses, divisi, dan identitas pengguna sistem memo.
                     </p>
                 </div>
-                <a href="{{ route('users.create') }}" class="bg-white text-red-800 hover:bg-red-50 px-6 py-3 rounded-2xl font-bold shadow-lg transition-all transform hover:-translate-y-1 active:scale-95 flex items-center text-sm">
-                    <i data-lucide="user-plus" class="w-4 h-4 mr-2"></i>
-                    Tambah Akun Baru
-                </a>
+                
+                <div class="flex flex-wrap items-center justify-center gap-3">
+                    {{-- Toggle Filter: Aktif vs Terhapus --}}
+                    @if(request('show_deleted'))
+                        <a href="{{ route('users.index') }}" class="bg-white/10 hover:bg-white/20 text-red px-5 py-3 rounded-2xl font-bold backdrop-blur-md border border-white/20 transition-all flex items-center text-sm">
+                            <i data-lucide="user-check" class="w-4 h-4 mr-2 text-red-400"></i> Lihat User Aktif
+                        </a>
+                    @else
+                        <a href="{{ route('users.index', ['show_deleted' => 1]) }}" class="bg-white-500/20 hover:bg-amber-500/30 text-red-400 px-5 py-3 rounded-2xl font-bold backdrop-blur-md border border-amber-500/30 transition-all flex items-center text-sm">
+                            <i data-lucide="archive" class="w-4 h-4 mr-2 text-red-400"></i> Lihat Arsip (Nonaktif)
+                        </a>
+                    @endif
+
+                    <a href="{{ route('users.create') }}" class="bg-white text-red-800 hover:bg-red-50 px-6 py-3 rounded-2xl font-bold shadow-lg transition-all transform hover:-translate-y-1 active:scale-95 flex items-center text-sm">
+                        <i data-lucide="user-plus" class="w-4 h-4 mr-2"></i> Tambah Akun Baru
+                    </a>
+                </div>
             </div>
             <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
         </div>
+
+        @if (session('success'))
+            <div class="mb-6 flex items-center p-4 text-green-800 border-t-4 border-green-500 bg-green-50 rounded-2xl shadow-sm" role="alert">
+                <i data-lucide="check-circle" class="w-5 h-5 mr-3"></i>
+                <div class="text-sm font-bold">{{ session('success') }}</div>
+            </div>
+        @endif
+
+        @if (session('error'))
+            <div class="mb-6 flex items-center p-4 text-red-800 border-t-4 border-red-500 bg-red-50 rounded-2xl shadow-sm" role="alert">
+                <i data-lucide="alert-triangle" class="w-5 h-5 mr-3"></i>
+                <div class="text-sm font-bold">{{ session('error') }}</div>
+            </div>
+        @endif
 
         <div class="bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.03)] border border-gray-100 overflow-hidden">
             <div class="p-6 md:p-8">
@@ -38,10 +66,10 @@
                     </thead>
                     <tbody class="text-gray-700">
                         @foreach($users as $user)
-                        <tr class="group hover:bg-gray-50/80 transition-all">
+                        <tr class="group hover:bg-gray-50/80 transition-all {{ $user->trashed() ? 'opacity-60' : '' }}">
                             <td class="px-4 py-4 bg-white group-hover:bg-transparent rounded-l-2xl border-y border-l border-gray-50 group-hover:border-blue-100 transition-all">
                                 <div class="flex items-center">
-                                    <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-black font-bold text-sm shadow-md mr-4 shadow-blue-100">
+                                    <div class="h-10 w-10 rounded-xl bg-gradient-to-br {{ $user->trashed() ? 'from-gray-400 to-gray-600' : 'from-blue-500 to-indigo-600' }} flex items-center justify-center text-white font-bold text-sm shadow-md mr-4 shadow-blue-100">
                                         {{ substr($user->name, 0, 2) }}
                                     </div>
                                     <div>
@@ -56,18 +84,21 @@
                                     <span class="text-sm font-medium text-gray-600 flex items-center">
                                         <i data-lucide="mail" class="w-3 h-3 mr-1.5 opacity-40"></i> {{ $user->email }}
                                     </span>
-                                    <span class="text-[11px] text-blue-600 font-bold uppercase tracking-wider mt-1">
-                                        {{ $user->division }}
-                                    </span>
+                                    <div class="flex items-center mt-1 space-x-2">
+                                        <span class="text-[11px] text-blue-600 font-bold uppercase tracking-wider">{{ $user->division }}</span>
+                                        <span class="text-[10px] bg-red-50 text-red-700 px-2 py-0.5 rounded font-black uppercase">{{ $user->branch ?? 'HO' }}</span>
+                                    </div>
                                 </div>
                             </td>
 
                             <td class="px-4 py-4 bg-white group-hover:bg-transparent border-y border-gray-50 group-hover:border-blue-100 transition-all text-center">
                                 @php
                                     $roleClasses = [
+                                        'superadmin' => 'bg-black text-white',
                                         'gm' => 'bg-purple-50 text-purple-700 border-purple-100',
                                         'admin' => 'bg-red-50 text-red-700 border-red-100',
                                         'manager' => 'bg-amber-50 text-amber-700 border-amber-100',
+                                        'bm' => 'bg-orange-50 text-orange-700 border-orange-100',
                                         'user' => 'bg-blue-50 text-blue-700 border-blue-100'
                                     ];
                                     $class = $roleClasses[strtolower($user->role)] ?? 'bg-gray-50 text-gray-700 border-gray-100';
@@ -79,13 +110,38 @@
 
                             <td class="px-4 py-4 bg-white group-hover:bg-transparent rounded-r-2xl border-y border-r border-gray-50 group-hover:border-blue-100 transition-all text-center">
                                 <div class="flex justify-center items-center space-x-2">
-                                   
-                                    <form action="{{ route('users.destroy', $user->id) }}" method="POST" class="inline" onsubmit="return confirm('Hapus akun {{ $user->name }}?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Hapus Akun">
-                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                        </button>
-                                    </form>
+                                    @if($user->trashed())
+                                        {{-- AKSI RESTORE --}}
+                                        <form action="{{ route('users.restore', $user->id) }}" method="POST" class="inline">
+                                            @csrf
+                                            <button type="submit" class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all" title="Pulihkan Akun">
+                                                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                                            </button>
+                                        </form>
+
+                                        {{-- AKSI FORCE DELETE --}}
+                                        <form action="{{ route('users.force_delete', $user->id) }}" method="POST" class="inline" onsubmit="return confirm('HAPUS PERMANEN? Data tidak dapat dikembalikan!')">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Hapus Permanen">
+                                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                            </button>
+                                        </form>
+                                    @else
+                                        {{-- AKSI EDIT --}}
+                                        <a href="{{ route('users.edit', $user->id) }}" class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Edit Akun">
+                                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                        </a>
+                                        
+                                        {{-- AKSI SOFT DELETE --}}
+                                        @if($user->id !== Auth::id())
+                                            <form action="{{ route('users.destroy', $user->id) }}" method="POST" class="inline" onsubmit="return confirm('Nonaktifkan akun {{ $user->name }}?')">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Nonaktifkan (Soft Delete)">
+                                                    <i data-lucide="user-minus" class="w-4 h-4"></i>
+                                                </button>
+                                            </form>
+                                        @endif
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -98,7 +154,6 @@
 </div>
 
 <style>
-    /* Custom Styling DataTable agar selaras dengan Tailwind */
     .dataTables_wrapper .dataTables_filter input {
         border-radius: 12px !important;
         border: 1px solid #E5E7EB !important;
@@ -143,12 +198,9 @@
                 "paginate": {
                     "previous": "Sebelumnya",
                     "next": "Selanjutnya"
-                },
-                "lengthMenu": "Tampilkan _MENU_ data",
-                "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ pengguna"
+                }
             },
             "drawCallback": function() {
-                // Render ulang ikon lucide setiap kali tabel berubah (paging/search)
                 lucide.createIcons();
             }
         });

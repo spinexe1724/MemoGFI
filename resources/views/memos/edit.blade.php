@@ -172,28 +172,27 @@
                 <div class="md:col-span-3">
                     <div class="bg-blue-50/50 border border-blue-100 rounded-2xl p-6">
                         <label class="block text-sm font-bold text-blue-800 mb-3 uppercase tracking-widest flex items-center">
-                            <i data-lucide="paperclip" class="w-5 h-5 mr-2"></i> Lampiran Dokumen (.docx, .xlsx, .pdf)
+                            <i data-lucide="paperclip" class="w-5 h-5 mr-2"></i> Lampiran Dokumen
                         </label>
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <input type="file" name="attachments[]" multiple class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition-all cursor-pointer">
-                                <p class="text-[10px] text-gray-400 mt-2 italic">* Pilih file baru untuk menambah. Maksimal 10MB per file.</p>
+                                <input type="file" name="attachments[]" multiple class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
                             </div>
 
                             @if($memo->attachments && $memo->attachments->count() > 0)
                             <div class="space-y-2">
-                                <p class="text-xs font-bold text-gray-500 uppercase tracking-tighter">Lampiran Saat Ini:</p>
+                                <p class="text-xs font-bold text-gray-500 uppercase">File Terlampir:</p>
                                 <div class="flex flex-wrap gap-2">
                                     @foreach($memo->attachments as $file)
-                                    <div class="flex items-center bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm group">
+                                    <div class="flex items-center bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm">
                                         <i data-lucide="file" class="w-3 h-3 mr-2 text-blue-500"></i>
-                                        <span class="text-xs font-medium text-gray-700 truncate max-w-[120px]" title="{{ $file->file_name }}">{{ $file->file_name }}</span>
-                                        <a href="{{ route('memos.attachment.destroy', $file->id) }}" 
-                                           onclick="return confirm('Hapus lampiran ini?')"
-                                           class="ml-2 text-gray-300 hover:text-red-500 transition-colors">
-                                            <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
-                                        </a>
+                                        <span class="text-xs font-medium text-gray-700 truncate max-w-[150px]">{{ $file->file_name }}</span>
+                                        
+                                        <!-- FORM DELETE LAMPIRAN (Sangat Penting: Pastikan rutenya benar) -->
+                                        <button type="button" onclick="deleteAttachment({{ $file->id }})" class="ml-2 text-gray-300 hover:text-red-500 transition-colors">
+                                            <i data-lucide="x-circle" class="w-4 h-4"></i>
+                                        </button>
                                     </div>
                                     @endforeach
                                 </div>
@@ -215,7 +214,6 @@
                 <div class="flex items-center space-x-4">
                     <a href="{{ route('memos.index') }}" class="text-gray-600 hover:text-gray-800 font-medium transition">Batal</a>
                     
-                    {{-- TOMBOL HAPUS: Muncul jika admin ingin membatalkan/menghapus memo sebelum diproses lebih lanjut --}}
                     @if(Auth::id() == $memo->user_id && ($memo->is_draft || $memo->is_rejected || (!$memo->is_final && $memo->approvals->count() <= 1)))
                         <button type="button" onclick="confirmDelete()" class="text-red-600 hover:text-red-800 font-bold px-4 py-2 rounded-xl transition flex items-center hover:bg-red-50">
                             <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
@@ -237,11 +235,11 @@
     </div>
 </div>
 
-{{-- Form Hidden untuk Delete --}}
-<form id="delete-form" action="{{ route('memos.destroy', $memo->id) }}" method="POST" class="hidden">
+{{-- FORM TERSEMBUNYI (PENTING: Harus di luar <form> utama agar tidak bentrok) --}}
+<form id="delete-attachment-form" action="" method="POST" class="hidden">
     @csrf
     @method('DELETE')
-</form>
+</form> 
 
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
@@ -323,24 +321,27 @@
             extraPlugins: [ MyCustomUploadAdapterPlugin ],
             toolbar: { 
                 items: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'imageUpload', 'insertTable', 'blockQuote', 'undo', 'redo'] 
-            },
-            image: {
-                toolbar: [
-                    'imageStyle:inline', 'imageStyle:block', 'imageStyle:side', '|', 
-                    'toggleImageCaption', 'imageTextAlternative', '|', 'resizeImage'
-                ],
-                resizeUnit: '%',
-                resizeOptions: [
-                    { name: 'resizeImage:original', value: null, label: 'Original' },
-                    { name: 'resizeImage:25', value: '25', label: '25%' },
-                    { name: 'resizeImage:50', value: '50', label: '50%' },
-                    { name: 'resizeImage:75', value: '75', label: '75%' },
-                    { name: 'resizeImage:100', value: '100', label: '100%' },
-                    { name: 'resizeImage:150', value: '150', label: '150%' },
-                    { name: 'resizeImage:200', value: '200', label: '200%' }
-                ]
             }
         }).catch(error => console.error(error));
     });
+     function deleteAttachment(attachmentId) {
+        Swal.fire({
+            title: 'Hapus Lampiran?',
+            text: "Hanya file ini yang akan dihapus, bukan memo Anda.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Ya, Hapus File',
+            cancelButtonText: 'Batal',
+            customClass: { popup: 'rounded-[2rem]' }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.getElementById('delete-attachment-form');
+                // Set action URL secara dinamis ke rute penghapusan LAMPIRAN
+                form.action = `/attachments/${attachmentId}`; 
+                form.submit();
+            }
+        });
+    }
 </script>
 @endsection

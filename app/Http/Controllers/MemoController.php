@@ -67,15 +67,27 @@ class MemoController extends Controller implements HasMiddleware
         $user = Auth::user();
         if ($user->role === 'superadmin') return redirect()->route('users.index');
 
-        $allMemos = Memo::with(['user', 'approvals', 'approver'])->latest()->get();
+        // Pastikan relasi user, approvals, dan approver menggunakan withTrashed()
+        $allMemos = Memo::with([
+            'user' => function($query) { $query->withTrashed(); },
+            'approvals' => function($query) { $query->withTrashed()->withPivot('note', 'created_at'); },
+            'approver' => function($query) { $query->withTrashed(); }
+        ])->latest()->get();
 
         $memos = $allMemos->filter(function($memo) use ($user) {
+            // User pembuat selalu bisa melihat memonya sendiri (meskipun draf)
             if ($memo->user_id == $user->id) return true;
+            
+            // Sembunyikan draf dari orang lain
             if ($memo->is_draft) return false;
             
+            // Akses Level 3 (GM/Direksi) atau Superadmin bisa melihat semua
             if ($user->level == 3 || $user->role === 'gm') return true;
-            if (in_array($user->role, ['admin', 'bm']) && $memo->user->branch === $user->branch) return true;
+            
+            // Akses Cabang (Admin/BM)
+            if (in_array($user->role, ['admin', 'bm']) && optional($memo->user)->branch === $user->branch) return true;
 
+            // Logika Tembusan (CC) - Hanya jika sudah final
             $ccArray = is_array($memo->cc_list) ? $memo->cc_list : [];
             if (in_array($user->division, $ccArray)) return $memo->is_final;
 
@@ -133,15 +145,28 @@ class MemoController extends Controller implements HasMiddleware
     /**
      * MENU: MEMO DITOLAK / KADALUARSA
      */
-    public function rejectedMemos()
+      public function rejectedMemos(Request $request)
     {
         $user = Auth::user();
-        $allMemos = Memo::with(['user', 'approvals', 'approver'])->where('is_draft', false)->latest()->get();
+        $filter = $request->get('filter', 'rejected'); // Default ke 'rejected'
+        
+        $allMemos = Memo::with(['user', 'approvals', 'approver'])
+                        ->where('is_draft', false)
+                        ->latest()->get();
 
-        $memos = $allMemos->filter(function($memo) use ($user) {
+        $memos = $allMemos->filter(function($memo) use ($user, $filter) {
             $isExpired = $memo->valid_until ? Carbon::now()->startOfDay()->gt(Carbon::parse($memo->valid_until)) : false;
-            if (!$memo->is_rejected && !$isExpired) return false;
+            
+            // Logika Pemisahan Strik (Eksklusif)
+            if ($filter === 'expired') {
+                // Menu Kadaluarsa: Hanya tampilkan yang benar-benar expired
+                if (!$isExpired) return false;
+            } else {
+                // Menu Ditolak: Hanya tampilkan yang ditolak DAN belum kadaluarsa
+                if (!$memo->is_rejected || $isExpired) return false;
+            }
 
+            // Kontrol Akses
             if ($memo->user_id == $user->id || $user->level == 3) return true;
             if (in_array($user->role, ['admin', 'bm']) && $memo->user->branch === $user->branch) return true;
             
@@ -149,7 +174,9 @@ class MemoController extends Controller implements HasMiddleware
             return in_array($user->division, $ccList);
         });
 
-        return view('memos.index', ['memos' => $memos, 'user' => $user, 'pageTitle' => 'Memo Ditolak / Kadaluarsa']);
+        $pageTitle = $filter === 'expired' ? 'Daftar Memo Kadaluarsa' : 'Daftar Memo Ditolak';
+
+        return view('memos.index', ['memos' => $memos, 'user' => $user, 'pageTitle' => $pageTitle]);
     }
 
     /**
@@ -214,7 +241,7 @@ class MemoController extends Controller implements HasMiddleware
     { 
         $request->validate([
             'reference_no' => 'required',
-            'attachments.*' => 'nullable|mimes:docx,xlsx,pdf,pptx,zip|max:10240',
+            'attachments.*' => 'nullable|mimes:docx,xlsx,pdf,pptx,zip,png,jpg|max:10240',
         ]);
 
         $memo = Memo::create([
@@ -266,6 +293,7 @@ class MemoController extends Controller implements HasMiddleware
 
     /**
      * FUNGSI: UPDATE MEMO
+     * PERBAIKAN: Menangani transisi Draf ke Publik agar tanda tangan pembuat muncul.
      */
     public function update(Request $request, $id)
     {
@@ -275,11 +303,12 @@ class MemoController extends Controller implements HasMiddleware
         $request->validate([
             'recipient' => 'required', 'subject' => 'required', 
             'body_text' => 'required', 'valid_until' => 'required|date',
-            'attachments.*' => 'nullable|mimes:docx,xlsx,pdf,pptx,zip|max:10240',
+            'attachments.*' => 'nullable|mimes:docx,xlsx,xls,png,jpg,pdf,pptx,zip|max:10240',
         ]);
 
         $isActionPublish = $request->input('action') === 'publish';
         $wasRejected = $memo->is_rejected;
+        $wasDraft = $memo->is_draft; // <--- Simpan status awal draf sebelum update
 
         $memo->update([
             'recipient'   => $request->recipient,
@@ -305,14 +334,18 @@ class MemoController extends Controller implements HasMiddleware
         }
 
         if ($isActionPublish) {
+            // Jika sebelumnya ditolak, reset semua approval dan pasang tanda tangan revisi
             if ($wasRejected) {
                 $memo->approvals()->detach();
                 $memo->approvals()->attach(Auth::id(), ['note' => 'Memo Direvisi & Diajukan Kembali', 'created_at' => now()]);
-            } elseif ($memo->is_draft) {
+            } 
+            // PERBAIKAN: Jika sebelumnya draf, pasang tanda tangan penerbitan pertama kali
+            elseif ($wasDraft) {
                 if (!$memo->approvals()->where('user_id', Auth::id())->exists()) {
                     $memo->approvals()->attach(Auth::id(), ['note' => 'Memo Diterbitkan', 'created_at' => now()]);
                 }
             }
+            
             $this->notifyNextApprover($memo);
         }
 
@@ -322,15 +355,27 @@ class MemoController extends Controller implements HasMiddleware
     /**
      * DETAIL MEMO (SHOW)
      */
-    public function show($id) { 
-        $user = Auth::user(); 
-        $memo = Memo::with([
-            'approvals' => function($query) { $query->withPivot('note', 'created_at'); }, 
-            'user', 'approver', 'attachments' 
-        ])->findOrFail($id); 
-        $canApprove = self::shouldUserApprove($user, $memo); 
-        return view('memos.show', compact('memo', 'user', 'canApprove')); 
-    }
+  public function show($id) { 
+    $user = Auth::user(); 
+    
+    // Kita gunakan withTrashed() agar data user yang sudah di-soft-delete 
+    // tetap bisa ditarik informasinya untuk tampilan tanda tangan digital.
+    $memo = Memo::with([
+        'approvals' => function($query) { 
+            $query->withTrashed()->withPivot('note', 'created_at'); 
+        }, 
+        'user' => function($query) {
+            $query->withTrashed();
+        },
+        'approver' => function($query) {
+            $query->withTrashed();
+        },
+        'attachments' 
+    ])->findOrFail($id); 
+    
+    $canApprove = self::shouldUserApprove($user, $memo); 
+    return view('memos.show', compact('memo', 'user', 'canApprove')); 
+}
 
     /**
      * LOGIKA: APAKAH USER BERHAK MENYETUJUI?
@@ -353,12 +398,17 @@ class MemoController extends Controller implements HasMiddleware
      */
     public function approve(Request $request, $id)
     {
-        return DB::transaction(function () use ($id, $request) {
+       return DB::transaction(function () use ($id, $request) {
             $user = Auth::user();
             $memo = Memo::lockForUpdate()->findOrFail($id);
             if (!self::shouldUserApprove($user, $memo)) return back()->with('error', 'Otoritas ditolak.');
             
-            $memo->approvals()->attach($user->id, ['note' => $request->note ?? 'Disetujui secara digital', 'created_at' => now()]);
+            // Menggunakan 'Approved' sebagai nilai fallback jika note kosong
+            $memo->approvals()->attach($user->id, [
+                'note' => $request->note ?? 'Approved', 
+                'created_at' => now()
+            ]);
+            
             $memo->refresh(); 
             
             if (!$memo->is_final) $this->notifyNextApprover($memo);
@@ -411,14 +461,23 @@ class MemoController extends Controller implements HasMiddleware
     /**
      * HAPUS: LAMPIRAN
      */
-    public function destroyAttachment($id)
-    {
-        $attachment = MemoAttachment::findOrFail($id);
-        if ($attachment->memo->user_id !== Auth::id()) abort(403);
+   public function destroyAttachment($id)
+{
+    // CARI DI TABEL ATTACHMENT, BUKAN TABEL MEMO
+    $attachment = \App\Models\MemoAttachment::findOrFail($id);
+    
+    // Cek apakah user adalah pemilik memo dari lampiran ini
+    if ($attachment->memo->user_id !== Auth::id()) abort(403);
+
+    // Hapus file fisik
+    if (Storage::disk('public')->exists($attachment->file_path)) {
         Storage::disk('public')->delete($attachment->file_path);
-        $attachment->delete();
-        return back()->with('success', 'Lampiran dihapus.');
     }
+
+    $attachment->delete();
+
+    return back()->with('success', 'Lampiran berhasil dihapus.');
+}
 
     /**
      * CKEDITOR: UPLOAD GAMBAR
@@ -443,6 +502,15 @@ class MemoController extends Controller implements HasMiddleware
         return $request->has('download') ? $pdf->download('memo.pdf') : $pdf->stream('memo.pdf');
     }
 
+    /**
+     * LOG GLOBAL (SUPERADMIN)
+     */
+    public function allLogs()
+    {
+        $memos = Memo::with('user')->latest()->paginate(10);
+        return view('memos.logs', compact('memos'));
+    }
+
     public static function getPendingCount() {
         $user = Auth::user();
         if (!$user) return 0;
@@ -453,4 +521,8 @@ class MemoController extends Controller implements HasMiddleware
         $romans = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
         return $romans[$month - 1];
     }
+
+
+    
+    
 }

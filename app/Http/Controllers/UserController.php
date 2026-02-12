@@ -14,15 +14,22 @@ class UserController extends Controller
 {
     /**
      * Menampilkan daftar pengguna (Hanya untuk Superadmin).
+     * Dilengkapi fitur filter untuk melihat user yang dinonaktifkan.
      */
-    public function index()
+    public function index(Request $request)
     {
-        // Pengecekan keamanan tambahan tingkat controller
         if (Auth::user()->role !== 'superadmin') {
             abort(403, 'Akses ditolak. Anda bukan Superadmin.');
         }
 
-        $users = User::all();
+        $query = User::query();
+
+        // Fitur: Lihat user yang sudah di-soft-delete (arsip)
+        if ($request->has('show_deleted')) {
+            $query->onlyTrashed();
+        }
+
+        $users = $query->latest()->paginate(10);
         return view('users.index', compact('users'));
     }
 
@@ -34,9 +41,11 @@ class UserController extends Controller
         if (Auth::user()->role !== 'superadmin') {
             abort(403);
         }
-        $branches = Branch::all(); // Tambahkan ini
-          $divisions = Division::all(); // Ambil dari DB
-        return view('users.create', compact('divisions','branches'));
+        
+        $branches = Branch::all();
+        $divisions = Division::all();
+        
+        return view('users.create', compact('divisions', 'branches'));
     }
 
     /**
@@ -53,18 +62,19 @@ class UserController extends Controller
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'role' => ['required', 'in:superadmin,gm,direksi,supervisor,admin,ga,bm,manager'],
-            'division' => ['nullable'], // Validasi dropdown divisi
-                 'level' => ['required_if:role,staff,gm,direksi,superadmin', 'nullable', 'in:2,3'],
-                             'branch' => ['required', 'exists:branches,code'], // Validasi cabang
-
+            'division' => ['required'], 
+            'level' => ['required_if:role,staff,gm,direksi,superadmin', 'nullable', 'in:2,3'],
+            'branch' => ['required', 'exists:branches,code'],
         ]);
         
         $role = $request->role;
         $level = $request->level;
-  // LOGIKA AUTO-LEVEL: Jika supervisor, paksa level ke 2 (Akses Divisi)
-        if ($role === 'supervisor') {
+
+        // LOGIKA AUTO-LEVEL: Jika supervisor, paksa level ke 2 (Akses Divisi)
+        if (in_array($role, ['supervisor', 'admin', 'bm'])) {
             $level = 2;
         }
+
         User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -72,11 +82,10 @@ class UserController extends Controller
             'role' => $request->role,
             'division' => $request->division,
             'branch' => $request->branch,
-
-            'level' => $level ?? 2, // Fallback ke level 2 jika tidak terdefinisi
+            'level' => $level ?? 2,
         ]);
 
-        return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan dengan akses Level ' . ($level ?? 2));
+        return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan.');
     }
 
     /**
@@ -87,7 +96,11 @@ class UserController extends Controller
         if (Auth::user()->role !== 'superadmin') {
             abort(403);
         }
-        return view('users.edit', compact('user'));
+
+        $branches = Branch::all();
+        $divisions = Division::all();
+
+        return view('users.edit', compact('user', 'divisions', 'branches'));
     }
 
     /**
@@ -103,21 +116,24 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email,'.$user->id],
             'role' => ['required', 'in:superadmin,gm,direksi,supervisor,admin,ga,manager,bm'],
-            'division' => ['required', 'in:IT,HRD,IC,Remedial'],
-                        'level' => ['required_if:role,staff,gm,direksi,superadmin', 'nullable', 'in:2,3'],
-
+            'division' => ['required'],
+            'level' => ['required_if:role,staff,gm,direksi,superadmin', 'nullable', 'in:2,3'],
+            'branch' => ['required', 'exists:branches,code'],
         ]);
+
         $role = $request->role;
-        $level = ($role === 'supervisor') ? 2 : $request->level;
-        $user->name = $request->name;
-        $user->email = $request->email;
-        $user->role = $request->role;
+        // Paksa level 2 untuk role cabang/divisi
+        $level = in_array($role, ['supervisor', 'admin', 'bm']) ? 2 : $request->level;
 
-        $user->division = $request->division;
-        $user->level = $level;
+        $user->fill([
+            'name' => $request->name,
+            'email' => $request->email,
+            'role' => $request->role,
+            'division' => $request->division,
+            'branch' => $request->branch,
+            'level' => $level,
+        ]);
 
-        
-        // Update password hanya jika diisi
         if ($request->filled('password')) {
             $request->validate([
                 'password' => ['confirmed', Rules\Password::defaults()],
@@ -131,7 +147,7 @@ class UserController extends Controller
     }
 
     /**
-     * Menghapus pengguna dari sistem.
+     * Menghapus pengguna (Soft Delete).
      */
     public function destroy(User $user)
     {
@@ -139,13 +155,40 @@ class UserController extends Controller
             abort(403);
         }
 
-        // Mencegah superadmin menghapus dirinya sendiri
         if ($user->id === Auth::id()) {
             return back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
         }
 
         $user->delete();
 
-        return redirect()->route('users.index')->with('success', 'User telah berhasil dihapus.');
+        return redirect()->route('users.index')->with('success', 'User telah dinonaktifkan (Arsip).');
+    }
+
+    /**
+     * Mengaktifkan kembali user yang dihapus.
+     */
+    public function restore($id)
+    {
+        if (Auth::user()->role !== 'superadmin') abort(403);
+
+        $user = User::withTrashed()->findOrFail($id);
+        $user->restore();
+
+        return redirect()->route('users.index')->with('success', 'User berhasil diaktifkan kembali.');
+    }
+
+    /**
+     * Menghapus user secara permanen.
+     */
+    public function forceDelete($id)
+    {
+        if (Auth::user()->role !== 'superadmin') abort(403);
+
+        $user = User::withTrashed()->findOrFail($id);
+        
+        // Cek integritas data bisa dilakukan di sini jika perlu
+        $user->forceDelete();
+
+        return redirect()->route('users.index')->with('success', 'User dihapus secara permanen dari sistem.');
     }
 }
