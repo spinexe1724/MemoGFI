@@ -20,35 +20,40 @@
     <div class="min-h-screen flex items-center justify-center p-4 md:p-8">
         <div class="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-white">
             
-            <div class="hidden lg:flex bg-gradient-to-br from-red-950 via-red-900 to-red-950 p-12 flex-col justify-between relative overflow-hidden">
-                <div class="z-10">
-                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 text-xs font-bold tracking-widest uppercase mb-8">
-                        <span class="relative flex h-2 w-2">
-                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                          <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-                        </span>
-                        Memo Internal Gratama Finance
-                    </div>
-                    <h1 class="text-5xl font-extrabold text-white leading-tight">
-                        Hubungkan <br> <span class="text-red-500">Divisi</span> Anda.
-                    </h1>
-                </div>
+        <div class="hidden lg:flex bg-gradient-to-br from-red-950 via-red-900 to-red-950 p-12 flex-col justify-between relative overflow-hidden">
+    <div class="z-10">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 text-xs font-bold tracking-widest uppercase mb-8">
+            <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+            </span>
+            Memo Internal Gratama Finance
+        </div>
+        <h1 class="text-5xl font-extrabold text-white leading-tight">
+            Hubungkan <br> <span class="text-red-500">Divisi</span> Anda.
+        </h1>
 
-                <div class="grid grid-cols-2 gap-4 mt-8 opacity-40">
-                    <div class="h-32 bg-slate-800 rounded-3xl p-4 border border-slate-700">
-                        <div class="h-2 w-12 bg-slate-700 rounded-full mb-2"></div>
-                        <div class="h-2 w-8 bg-slate-700 rounded-full"></div>
-                    </div>
-                    <div class="h-32 bg-indigo-600 rounded-3xl p-4 flex items-end justify-end">
-                         <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    </div>
-                </div>
-
-                <div class="z-10 flex items-center gap-4 text-slate-500 text-sm italic font-medium">
-                </div>
-                
-                <div class="absolute -top-24 -right-24 w-64 h-64 bg-indigo-600 rounded-full mix-blend-screen filter blur-[100px] opacity-20"></div>
+        <br>
+        <br>
+        <br>
+        <div class="mt-8 flex items-center gap-4">
+            <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg transform -rotate-6">
+                <span class="text-red-900 font-black text-2xl">G</span> 
             </div>
+            <div>
+            <img src="{{ asset('images/gratam.PNG') }}" 
+                     class="h-16 w-auto object-contain transform scale-110 transition-transform" 
+                     alt="Logo" />
+                <p class="text-red-500 text-xs font-medium tracking-[0.2em] mt-1">TRUSTED PARTNER</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="z-10 flex items-center gap-4 text-slate-500 text-sm italic font-medium">
+    </div>
+    
+    <div class="absolute -top-24 -right-24 w-64 h-64 bg-indigo-600 rounded-full mix-blend-screen filter blur-[100px] opacity-20"></div>
+</div>
 
             <div class="p-8 md:p-16 flex flex-col justify-center">
                 <div class="mb-10">

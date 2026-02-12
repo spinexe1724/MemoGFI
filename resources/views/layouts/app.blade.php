@@ -211,5 +211,141 @@
         }
     </script>
     @stack('scripts')
+    <style>
+    /* Transisi halus untuk semua elemen layout */
+    #sidebar, 
+    .sm\:ml-64, 
+    #btn-toggle-custom, 
+    #sidebar-logo-container {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* --- LAYOUT DESKTOP (COLLAPSIBLE) --- */
+    @media (min-width: 640px) {
+        .sidebar-mini {
+            width: 85px !important;
+        }
+        .content-expand {
+            margin-left: 85px !important;
+        }
+        /* Sembunyikan elemen teks saat sidebar mengecil */
+        .sidebar-mini .menu-text,
+        .sidebar-mini p[class*="uppercase"],
+        .sidebar-mini .absolute.bottom-6,
+        .sidebar-mini nav a span {
+            display: none !important;
+        }
+        /* Pusatkan icon menu */
+        .sidebar-mini nav a {
+            justify-content: center !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+        .sidebar-mini nav a i, 
+        .sidebar-mini nav a svg {
+            margin-right: 0 !important;
+            width: 24px;
+            height: 24px;
+        }
+        /* Perkecil container logo */
+        .sidebar-mini #sidebar-logo-container {
+            padding: 0.5rem !important;
+        }
+    }
+
+    /* --- LAYOUT MOBILE & TABLET (DRAWER) --- */
+    @media (max-width: 639px) {
+        #sidebar {
+            width: 280px !important; /* Sidebar sedikit lebih lebar di mobile agar nyaman */
+        }
+        /* Sembunyikan tombol toggle desktop di mobile */
+        #btn-toggle-custom {
+            display: none !important;
+        }
+        /* Overlay saat sidebar mobile terbuka */
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 45;
+        }
+    }
+
+    /* --- STYLING TOMBOL TOGGLE DESKTOP --- */
+    #btn-toggle-custom {
+        position: fixed;
+        left: 242px; /* 256px (w-64) - 14px */
+        top: 85px;
+        z-index: 100;
+        background: white;
+        border: 1px solid #f1f5f9;
+        border-radius: 99px;
+        padding: 6px;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        cursor: pointer;
+        color: #64748b;
+    }
+    #btn-toggle-custom:hover {
+        color: #b91c1c;
+        background: #fff5f5;
+    }
+</style>
+
+<button id="btn-toggle-custom" onclick="handleSidebarToggle()">
+    <i data-lucide="chevron-left" id="icon-toggle-custom"></i>
+</button>
+
+<script>
+    // Inisialisasi: Bungkus teks menu agar aman
+    document.querySelectorAll('#sidebar nav a span').forEach(el => {
+        el.classList.add('menu-text');
+    });
+
+    // Tambahkan ID pada container logo untuk manipulasi CSS
+    const logoDiv = document.querySelector('#sidebar .sticky .flex');
+    if(logoDiv) logoDiv.id = 'sidebar-logo-container';
+
+    // A. Fungsi Toggle Desktop (Kecilkan/Lebarkan)
+    function handleSidebarToggle() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.querySelector('.sm\\:ml-64');
+        const icon = document.getElementById('icon-toggle-custom');
+        const btn = document.getElementById('btn-toggle-custom');
+
+        sidebar.classList.toggle('sidebar-mini');
+        if (mainContent) mainContent.classList.toggle('content-expand');
+
+        if (sidebar.classList.contains('sidebar-mini')) {
+            icon.style.transform = 'rotate(180deg)';
+            btn.style.left = '71px';
+        } else {
+            icon.style.transform = 'rotate(0deg)';
+            btn.style.left = '242px';
+        }
+    }
+
+    // B. Fungsi Toggle Mobile (Buka/Tutup)
+    // Menggunakan fungsi toggleSidebar() yang sudah ada di kode Anda, 
+    // tapi ditambahkan overlay agar lebih user-friendly.
+    const originalToggleSidebar = window.toggleSidebar;
+    window.toggleSidebar = function() {
+        const sidebar = document.getElementById('sidebar');
+        sidebar.classList.toggle('-translate-x-full');
+        
+        // Tambahkan/Hapus Overlay
+        let overlay = document.querySelector('.sidebar-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.className = 'sidebar-overlay';
+            overlay.onclick = window.toggleSidebar;
+            document.body.appendChild(overlay);
+        } else {
+            overlay.remove();
+        }
+    };
+
+    lucide.createIcons();
+</script>
 </body>
 </html>

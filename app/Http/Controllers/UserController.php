@@ -29,7 +29,7 @@ class UserController extends Controller
             $query->onlyTrashed();
         }
 
-        $users = $query->latest()->paginate(10);
+        $users = $query->latest()->paginate(100);
         return view('users.index', compact('users'));
     }
 

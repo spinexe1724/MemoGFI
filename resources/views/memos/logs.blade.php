@@ -120,14 +120,64 @@
 </script>
 
 <style>
-    /* Styling tambahan untuk integrasi Tailwind */
-    .dataTables_wrapper .dataTables_info {
-        font-size: 0.875rem;
-        color: #6B7280;
-        padding-top: 1.5rem;
+    /* Filter Search Customization */
+    .dataTables_wrapper .dataTables_filter input {
+        border-radius: 12px !important;
+        border: 1px solid #E5E7EB !important;
+        padding: 8px 16px !important;
+        outline: none !important;
+        transition: all 0.2s;
+        margin-left: 10px;
     }
-    table.dataTable thead th {
-        border-bottom: 1px solid #F3F4F6 !important;
+    .dataTables_wrapper .dataTables_filter input:focus {
+        border-color: #ef4444 !important; /* Warna Merah sesuai tema */
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1) !important;
+    }
+
+    /* Pagination Styling */
+    .dataTables_wrapper .dataTables_paginate {
+        padding-top: 1.5rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        gap: 4px !important;
+    }
+    
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        border: 1px solid #E5E7EB !important;
+        border-radius: 10px !important;
+        padding: 5px 12px !important;
+        background: white !important;
+        color: #4B5563 !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        transition: all 0.2s !important;
+        cursor: pointer !important;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background: #F9FAFB !important;
+        border-color: #D1D5DB !important;
+        color: #111827 !important;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        background: #991b1b !important; /* Merah pekat (Red-800) */
+        color: white !important;
+        border-color: #991b1b !important;
+        box-shadow: 0 4px 12px rgba(153, 27, 27, 0.2) !important;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+        opacity: 0.5 !important;
+        cursor: not-allowed !important;
+    }
+
+    /* Info text styling */
+    .dataTables_wrapper .dataTables_info {
+        padding-top: 1.5rem !important;
+        font-size: 13px !important;
+        color: #6B7280 !important;
     }
 </style>
 @endsection

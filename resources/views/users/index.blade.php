@@ -69,7 +69,7 @@
                         <tr class="group hover:bg-gray-50/80 transition-all {{ $user->trashed() ? 'opacity-60' : '' }}">
                             <td class="px-4 py-4 bg-white group-hover:bg-transparent rounded-l-2xl border-y border-l border-gray-50 group-hover:border-blue-100 transition-all">
                                 <div class="flex items-center">
-                                    <div class="h-10 w-10 rounded-xl bg-gradient-to-br {{ $user->trashed() ? 'from-gray-400 to-gray-600' : 'from-blue-500 to-indigo-600' }} flex items-center justify-center text-white font-bold text-sm shadow-md mr-4 shadow-blue-100">
+                                    <div class="h-10 w-10 rounded-xl bg-gradient-to-br {{ $user->trashed() ? 'from-gray-400 to-gray-600' : 'from-blue-500 to-indigo-600' }} flex items-center justify-center text-black font-bold text-sm shadow-md mr-4 shadow-blue-100">
                                         {{ substr($user->name, 0, 2) }}
                                     </div>
                                     <div>
@@ -154,22 +154,64 @@
 </div>
 
 <style>
+    /* Filter Search Customization */
     .dataTables_wrapper .dataTables_filter input {
         border-radius: 12px !important;
         border: 1px solid #E5E7EB !important;
         padding: 8px 16px !important;
         outline: none !important;
         transition: all 0.2s;
+        margin-left: 10px;
     }
     .dataTables_wrapper .dataTables_filter input:focus {
-        border-color: #3B82F6 !important;
-        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important;
+        border-color: #ef4444 !important; /* Warna Merah sesuai tema */
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1) !important;
     }
-    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-        background: #1E40AF !important;
-        color: white !important;
-        border: none !important;
+
+    /* Pagination Styling */
+    .dataTables_wrapper .dataTables_paginate {
+        padding-top: 1.5rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        gap: 4px !important;
+    }
+    
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        border: 1px solid #E5E7EB !important;
         border-radius: 10px !important;
+        padding: 5px 12px !important;
+        background: white !important;
+        color: #4B5563 !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        transition: all 0.2s !important;
+        cursor: pointer !important;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background: #F9FAFB !important;
+        border-color: #D1D5DB !important;
+        color: #111827 !important;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        background: #991b1b !important; /* Merah pekat (Red-800) */
+        color: white !important;
+        border-color: #991b1b !important;
+        box-shadow: 0 4px 12px rgba(153, 27, 27, 0.2) !important;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+        opacity: 0.5 !important;
+        cursor: not-allowed !important;
+    }
+
+    /* Info text styling */
+    .dataTables_wrapper .dataTables_info {
+        padding-top: 1.5rem !important;
+        font-size: 13px !important;
+        color: #6B7280 !important;
     }
 </style>
 @endsection
@@ -193,14 +235,21 @@
             "info": true,
             "searching": true,
             "pageLength": 10,
+            "dom": '<"flex flex-col md:flex-row justify-between items-center mb-4"lf>rt<"flex flex-col md:flex-row justify-between items-center mt-6"ip>',
             "language": {
-                "search": "Cari Pengguna:",
+                "search": "",
+                "searchPlaceholder": "Cari Pengguna...",
+                "lengthMenu": "Tampilkan _MENU_",
+                "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ user",
+                "infoEmpty": "Tidak ada data tersedia",
+                "infoFiltered": "(disaring dari _MAX_ total data)",
                 "paginate": {
-                    "previous": "Sebelumnya",
-                    "next": "Selanjutnya"
+                    "previous": "<i data-lucide='chevron-left' class='w-4 h-4'></i>",
+                    "next": "<i data-lucide='chevron-right' class='w-4 h-4'></i>"
                 }
             },
             "drawCallback": function() {
+                // Render ulang icon Lucide setiap kali ganti halaman/filter
                 lucide.createIcons();
             }
         });
