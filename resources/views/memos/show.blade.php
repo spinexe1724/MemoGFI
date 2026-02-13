@@ -107,24 +107,40 @@
 
             {{-- Meta Informasi --}}
             <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Meta Informasi</h3>
-                <div class="space-y-3">
-                    <div>
-                        <p class="text-[10px] text-gray-400 uppercase font-black">No. Referensi</p>
-                        <p class="text-sm font-mono font-bold text-gray-800">{{ $memo->reference_no }}</p>
-                    </div>
-                    <div>
-                        <p class="text-[10px] text-gray-400 uppercase font-black">Tgl Dibuat</p>
-                        <p class="text-sm font-bold text-gray-800">{{ $memo->created_at->format('d M Y, H:i') }} WIB</p>
-                    </div>
-                    <div>
-                        <p class="text-[10px] text-gray-400 uppercase font-black">Berlaku Sampai</p>
-                        <p class="text-sm font-bold text-red-800">
-                            {{ $memo->valid_until ? \Carbon\Carbon::parse($memo->valid_until)->format('d M Y') : 'Tanpa Batas' }}
-                        </p>
-                    </div>
-                </div>
+    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Meta Informasi</h3>
+    <div class="space-y-3">
+        <div>
+            <p class="text-[10px] text-gray-400 uppercase font-black">No. Referensi</p>
+            <p class="text-sm font-mono font-bold text-gray-800">{{ $memo->reference_no }}</p>
+        </div>
+        <div>
+            <p class="text-[10px] text-gray-400 uppercase font-black">Tgl Dibuat</p>
+            <p class="text-sm font-bold text-gray-800">{{ $memo->created_at->format('d M Y, H:i') }} WIB</p>
+        </div>
+        <div>
+            <p class="text-[10px] text-gray-400 uppercase font-black">Berlaku Sampai</p>
+            <p class="text-sm font-bold text-red-800">
+                {{ $memo->valid_until ? \Carbon\Carbon::parse($memo->valid_until)->format('d M Y') : 'Tanpa Batas' }}
+            </p>
+        </div>
+
+        {{-- TAMBAHKAN SEKSI CC DI SINI --}}
+        <div class="pt-3 border-t border-gray-100 mt-2">
+            <p class="text-[10px] text-gray-400 uppercase font-black mb-1">Tembusan (CC):</p>
+            <div class="flex flex-wrap gap-1">
+                @if(isset($memo->carbon_copies) && count($memo->carbon_copies) > 0)
+                    @foreach($memo->carbon_copies as $cc)
+                        <span class="px-2 py-0.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] font-bold rounded-md">
+                            {{ $cc->name }}
+                        </span>
+                    @endforeach
+                @else
+                    <span class="text-xs font-bold text-gray-500 italic">Seluruh Karyawan</span>
+                @endif
             </div>
+        </div>
+    </div>
+</div>
 
             @if($canApprove)
                 <div class="bg-white rounded-3xl shadow-xl shadow-red-100 border-2 border-red-800 overflow-hidden p-6">
@@ -143,21 +159,15 @@
 
         {{-- Konten Utama --}}
         <div class="lg:col-span-9 space-y-8">
-            <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden relative">
-                <div class="h-2 w-full bg-red-800"></div>
+            <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden p-8 md:p-12">
+                <div class="bg-gray-50/50 rounded-2xl p-6 mb-12 border border-gray-100/50 text-center">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] block mb-2">Perihal</span>
+                    <h2 class="text-xl md:text-2xl font-black text-gray-900 uppercase italic">"{{ $memo->subject }}"</h2>
+                </div>
 
-                <div class="p-8 md:p-12">
-                    <div class="flex justify-between items-start mb-10 pb-8 border-b border-gray-100">
-                        <div class="space-y-1">
-                            <h1 class="text-3xl font-black text-gray-900 tracking-tighter uppercase italic text-red-800">INTERNAL MEMO</h1>
-                            <p class="text-xs font-bold text-gray-400 tracking-widest uppercase">Gratama Management System</p>
-                        </div>
-                        <div class="text-right">
-                            <div class="inline-block p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                <i data-lucide="file-text" class="w-8 h-8 text-red-800"></i>
-                            </div>
-                        </div>
-                    </div>
+                <div class="ck-content prose prose-lg max-w-none text-gray-700 leading-relaxed mb-12 min-h-[300px]">
+                    {!! $memo->body_text !!}
+                </div>
 
                 {{-- LAMPIRAN DOKUMEN --}}
                 @if($memo->attachments && $memo->attachments->count() > 0)
