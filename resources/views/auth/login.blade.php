@@ -7,79 +7,93 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .bg-pattern {
-            background-color: #800000;
-            background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0);
-            background-size: 24px 24px;
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        }
+        
+        /* Animasi mengambang untuk logo */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-float { animation: float 4s ease-in-out infinite; }
+
+        /* Efek hover halus pada input */
+        .input-focus-effect:focus {
+            box-shadow: 0 0 0 4px rgba(128, 0, 0, 0.1);
+            transform: translateY(-1px);
         }
     </style>
 </head>
-<body class="bg-[#F8FAFC] text-slate-900">
+<body class="text-slate-900 overflow-x-hidden">
 
     <div class="min-h-screen flex items-center justify-center p-6">
-        <div class="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 bg-white rounded-[3rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] overflow-hidden border border-white">
+        <div class="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 bg-white/80 backdrop-blur-xl rounded-[3rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.15)] overflow-hidden border border-white/50">
             
-            <div class="hidden lg:flex bg-pattern p-16 flex-col justify-between relative overflow-hidden">
-                <div class="z-10">
-                    <div class="w-26 h-16 bg-white rounded-2xl flex items-center justify-center shadow-2xl mb-10">
-                        <span class="text-[#800000] font-black text-1xl">Login Memo Internal Gratama Finance</span> 
-                    </div>
-                    
-                    <img src="{{ asset('images/gratam.PNG') }}" class="h-23 w-auto brightness-0 invert opacity-80" alt="Logo">
-                    <p class="text-[10px] text-red-300/40 font-bold tracking-[0.4em] uppercase mt-4"></p>
-                    <p class="text-red-200/60 mt-6 text-lg leading-relaxed max-w-xs">
-                        Platform komunikasi terintegrasi untuk efisiensi operasional Gratama Finance.
-                    </p>
-                </div>
+        <div class="hidden lg:flex p-16 flex-col items-center justify-center relative overflow-hidden bg-slate-50/50 border-r border-slate-100">
+    
+    <div class="absolute -bottom-20 -left-20 w-80 h-80 bg-red-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-10"></div>
+    <div class="absolute top-0 right-0 w-40 h-40 bg-blue-400 rounded-full mix-blend-multiply filter blur-[80px] opacity-5"></div>
 
+    <div class="z-10 flex flex-col items-center text-center animate-float">
+        <div class="inline-block px-6 py-3 bg-white rounded-2xl shadow-xl shadow-red-900/5 mb-8 border border-slate-50">
+            <span class="text-[#800000] font-bold text-xs tracking-tight">Login Memo Internal Gratama Finance</span> 
+        </div>
+        
+        <div class="relative group">
+            <img src="{{ asset('images/gratam.PNG') }}" class="h-23 w-auto drop-shadow-2xl transition-transform duration-500 group-hover:scale-105" alt="Logo">
+            <div class="w-16 h-1 bg-[#800000] rounded-full mt-6 mx-auto opacity-50"></div>
+        </div>
+    </div>
 
-                <div class="absolute -bottom-20 -left-20 w-64 h-64 bg-red-500 rounded-full mix-blend-soft-light filter blur-[100px] opacity-20"></div>
-            </div>
+    <div class="absolute bottom-10 text-[9px] font-bold text-slate-300 uppercase tracking-widest">
+        Secure Access Portal
+    </div>
+</div>
 
-            <div class="p-10 md:p-20 flex flex-col justify-center bg-white">
-                <div class="mb-12">
+            <div class="p-10 md:p-20 flex flex-col justify-center bg-white relative">
+                <div class="mb-10">
                     <div class="lg:hidden mb-8">
-                        <span class="text-[#800000] font-black text-4xl italic">GRATAMA</span>
+                        <span class="text-[#800000] font-black text-3xl italic tracking-tighter">GRATAMA</span>
                     </div>
-                    <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Selamat Datang</h2>
-                    <p class="text-slate-400 mt-2 font-medium">Silahkan masuk ke akun Anda</p>
+                    <h2 class="text-4xl font-extrabold text-slate-900 tracking-tight mb-2">Selamat Datang</h2>
+                    <p class="text-slate-500 font-medium italic">Silahkan masuk ke akun Anda</p>
                 </div>
 
                 <form action="{{ route('login') }}" method="POST" class="space-y-6">
                     @csrf
                     
                     <div class="space-y-2">
-                        <label class="block text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Email</label>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Email Corporate</label>
                         <input type="email" name="email" required 
-                            class="w-full px-6 py-4 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:ring-4 focus:ring-red-500/5 focus:border-[#800000] focus:bg-white transition-all duration-300 outline-none placeholder:text-slate-300 font-semibold" 
+                            class="input-focus-effect w-full px-6 py-4 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:border-[#800000] focus:bg-white transition-all duration-300 outline-none placeholder:text-slate-300 font-semibold" 
                             placeholder="nama@gratama.com">
                     </div>
 
                     <div class="space-y-2">
                         <div class="flex justify-between items-center px-1">
-                            <label class="text-xs font-black text-slate-400 uppercase tracking-widest">Kata Sandi</label>
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Kata Sandi</label>
                         </div>
                         <input type="password" name="password" required 
-                            class="w-full px-6 py-4 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:ring-4 focus:ring-red-500/5 focus:border-[#800000] focus:bg-white transition-all duration-300 outline-none placeholder:text-slate-300 font-semibold"
+                            class="input-focus-effect w-full px-6 py-4 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:border-[#800000] focus:bg-white transition-all duration-300 outline-none placeholder:text-slate-300 font-semibold"
                             placeholder="••••••••">
                     </div>
 
-                    <div class="pt-2">
+                    <div class="pt-4">
                         <button type="submit" 
-                            class="w-full py-4 px-6 text-white bg-[#800000] hover:bg-black font-extrabold rounded-2xl text-sm shadow-[0_20px_40px_-12px_rgba(128,0,0,0.3)] transition-all duration-500 active:scale-[0.98] flex items-center justify-center gap-3 group tracking-widest uppercase">
-                            <span>Masuk</span>
-                            <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            class="w-full py-4 px-6 text-white bg-[#800000] hover:bg-[#600000] hover:shadow-[0_20px_40px_-10px_rgba(128,0,0,0.4)] font-extrabold rounded-2xl text-sm transition-all duration-300 active:scale-[0.97] flex items-center justify-center gap-3 group tracking-widest uppercase">
+                            <span>Masuk Sekarang</span>
+                            <svg class="w-5 h-5 group-hover:translate-x-2 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                         </button>
                     </div>
                 </form>
 
-                <div class="mt-16 flex justify-between items-center text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">
-                    <p>© 2026 all rights reserved</p>
-                    <div class="flex gap-6">
-                    </div>
+                <div class="mt-16 flex justify-between items-center text-[9px] font-bold text-slate-400 uppercase tracking-[0.3em]">
+                    <p>© 2026 Gratama Finance. All Rights Reserved.</p>
                 </div>
             </div>
         </div>
