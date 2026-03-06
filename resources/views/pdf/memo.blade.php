@@ -19,6 +19,21 @@
             position: relative;
             min-height: 100%;
         }
+        .watermark {
+            position: fixed;
+            top: 30%;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            opacity: 0.1; /* Transparansi rendah agar teks utama tetap terbaca */
+            font-size: 100px;
+            font-weight: bold;
+            color: #000;
+            transform: rotate(-45deg);
+            z-index: -1000; /* Di belakang konten */
+            text-transform: uppercase;
+            letter-spacing: 10px;
+        }
 
         /* Penomoran Halaman */
         .page-number { 
@@ -113,8 +128,24 @@
         .empty-cell { border: none !important; }
     </style>
 </head>
-<body>
-    
+<body> @php
+        // 1. Saring tanda tangan asli (abaikan log penonaktifan)
+        // Kita reject entri yang mengandung kata 'DINONAKTIFKAN' agar tidak dianggap sebagai approval
+        $validApprovals = $memo->approvals->reject(function($a) {
+            return str_contains(strtoupper($a->pivot->note ?? ''), 'DINONAKTIFKAN');
+        });
+
+        // 2. Cek apakah ada user dengan role 'direksi' yang sudah membubuhkan tanda tangan valid
+        $direksiHasSigned = $validApprovals->contains(function($user) {
+            return strtolower($user->role) === 'direksi';
+        });
+    @endphp
+
+       @if($memo->is_deactivated)
+        <div class="watermark">NON-AKTIF</div>
+  @elseif(!$direksiHasSigned)       
+   <div class="watermark watermark-red">BELUM DI-OTORISASI</div>
+    @endif
     <div class="page-number">Halaman <span class="pagenum"></span>  -  <span>{{ $memo->reference_no }}</span></div>
     
     <div class="header-title">MEMO INTERNAL</div>
@@ -130,14 +161,11 @@
         <tr><td class="meta-label">Tanggal Terbit</td><td class="meta-separator">:</td><td>{{ $memo->created_at->format('d F Y') }}</td></tr>
         <tr><td class="meta-label">Status Memo</td><td class="meta-separator">:</td>
             <td>
-            @php
-                $isExpired = $memo->valid_until ? \Carbon\Carbon::now()->startOfDay()->gt(\Carbon\Carbon::parse($memo->valid_until)) : false;
-            @endphp
-
-            @if($memo->is_rejected)
+          
+@if($memo->is_deactivated)
+                <span class="status-badge" style="color:black; border-color: black; background-color: #eee;">NON-AKTIF (MANUAL)</span>
+            @elseif($memo->is_rejected)
                 <span class="status-badge" style="color:red; border-color: red;">DITOLAK / DIBATALKAN</span>
-            @elseif($isExpired)
-                <span class="status-badge" style="color:gray; border-color: gray;">KADALUARSA</span>
             @elseif($memo->is_final)
                 <span class="status-badge" style="color:green; border-color: green;">AKTIF / VALID</span>
             @else
@@ -199,7 +227,7 @@
     <div class="footer-container">
         @if($memo->is_rejected)
             <div style="text-align:center; color:red; border:2px solid red; padding:20px; font-size:13px; font-weight:bold;">
-                DITOLAK: MEMO INI TELAH DIBATALKAN DAN TIDAK BERLAKU
+                DITOLAK: MEMO INI TELAH DIBATALKAN Atau Nonaktif
             </div>
         @elseif($memo->approvals->count() > 0)
             @php

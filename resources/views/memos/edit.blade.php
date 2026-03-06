@@ -38,13 +38,7 @@
                            class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-500 font-mono outline-none cursor-not-allowed" required>
                 </div>
                 
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2 tracking-tight">Akhir Berlaku Memo</label>
-                    <input type="date" name="valid_until" 
-                           value="{{ $memo->valid_until ? \Carbon\Carbon::parse($memo->valid_until)->format('Y-m-d') : '' }}" 
-                           min="{{ date('Y-m-d') }}"
-                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all outline-none" required>
-                </div>
+              
 
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2 tracking-tight">Perihal / Subjek</label>
@@ -93,7 +87,7 @@
                 @endif
 
                 <!-- Persetujuan Lanjutan (Flexible) -->
-                <div class="md:col-span-3">
+                <div     class="md:col-span-3">
                     <label class="block text-sm font-bold text-red-800 mb-3 uppercase tracking-widest flex items-center">
                         <i data-lucide="shield-check" class="w-5 h-5 mr-2"></i> Persetujuan Lanjutan (Flexible)
                     </label>
@@ -215,7 +209,7 @@
                     <a href="{{ route('memos.index') }}" class="text-gray-600 hover:text-gray-800 font-medium transition">Batal</a>
                     
                     @if(Auth::id() == $memo->user_id && ($memo->is_draft || $memo->is_rejected || (!$memo->is_final && $memo->approvals->count() <= 1)))
-                        <button type="button" onclick="confirmDelete()" class="text-red-600 hover:text-red-800 font-bold px-4 py-2 rounded-xl transition flex items-center hover:bg-red-50">
+                        <button type="button" onclick="confirmDeleteMemo()" class="text-red-600 hover:text-red-800 font-bold px-4 py-2 rounded-xl transition flex items-center hover:bg-red-50">
                             <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
                             Hapus Memo
                         </button>
@@ -240,7 +234,10 @@
     @csrf
     @method('DELETE')
 </form> 
-
+<form id="delete-memo-form" action="{{ route('memos.destroy', $memo->id) }}" method="POST" class="hidden">
+    @csrf
+    @method('DELETE')
+</form>
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
     .select2-container--default .select2-selection--multiple, .select2-container--default .select2-selection--single { border-color: #D1D5DB; border-radius: 0.5rem; min-height: 42px; }
@@ -285,20 +282,19 @@
         };
     }
 
-    function confirmDelete() {
+   function confirmDeleteMemo() {
         Swal.fire({
             title: 'Hapus Memo?',
-            text: "Data memo akan dihapus secara permanen dan tidak dapat dikembalikan!",
-            icon: 'warning',
+            text: "Seluruh data memo dan lampiran akan hilang permanen!",
+            icon: 'error',
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
+            confirmButtonColor: '#991b1b',
             confirmButtonText: 'Ya, Hapus Permanen',
             cancelButtonText: 'Batal',
             customClass: { popup: 'rounded-[2rem]' }
         }).then((result) => {
             if (result.isConfirmed) {
-                document.getElementById('delete-form').submit();
+                document.getElementById('delete-memo-form').submit();
             }
         });
     }

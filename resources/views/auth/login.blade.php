@@ -18,7 +18,6 @@
             50% { transform: translateY(-10px); }
             100% { transform: translateY(0px); }
         }
-        .animate-float { animation: float 4s ease-in-out infinite; }
 
         /* Efek hover halus pada input */
         .input-focus-effect:focus {
@@ -32,8 +31,7 @@
     <div class="min-h-screen flex items-center justify-center p-6">
         <div class="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 bg-white/80 backdrop-blur-xl rounded-[3rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.15)] overflow-hidden border border-white/50">
             
-        <div class="hidden lg:flex p-16 flex-col items-center justify-center relative overflow-hidden bg-slate-50/50 border-r border-slate-100">
-    
+<div class="hidden lg:flex p-16 flex-col items-center justify-center relative overflow-hidden bg-[rgb(128,0,0)] border-r border-slate-100">        
     <div class="absolute -bottom-20 -left-20 w-80 h-80 bg-red-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-10"></div>
     <div class="absolute top-0 right-0 w-40 h-40 bg-blue-400 rounded-full mix-blend-multiply filter blur-[80px] opacity-5"></div>
 
@@ -43,7 +41,7 @@
         </div>
         
         <div class="relative group">
-            <img src="{{ asset('images/gratam.PNG') }}" class="h-23 w-auto drop-shadow-2xl transition-transform duration-500 group-hover:scale-105" alt="Logo">
+            <img src="{{ asset('images/gratam.png') }}" class="h-23 w-auto drop-shadow-2xl transition-transform duration-500 group-hover:scale-105" alt="Logo">
             <div class="w-16 h-1 bg-[#800000] rounded-full mt-6 mx-auto opacity-50"></div>
         </div>
     </div>

@@ -65,17 +65,30 @@
             <i data-lucide="chevron-left" class="w-4 h-4 mr-1"></i> Kembali ke Daftar Memo
         </a>
         <div class="flex items-center space-x-3">
-            @if(!$memo->is_rejected)
+        
                 <a href="{{ route('memos.pdf', $memo->id) }}" target="_blank" class="inline-flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-xl shadow-sm hover:bg-gray-50 transition-all">
                     <i data-lucide="printer" class="w-4 h-4 mr-2 text-gray-400"></i> Cetak PDF
                 </a>
-            @endif
+    
 
             {{-- TOMBOL REVISI: Muncul jika User adalah Pembuat dan statusnya Ditolak --}}
-            @if(Auth::id() == $memo->user_id && $memo->is_rejected)
+            @if(Auth::id() == $memo->user_id && $memo->is_rejected && !$memo->is_deactivated)
                 <a href="{{ route('memos.edit', $memo->id) }}" class="inline-flex items-center px-4 py-2 bg-amber-500 text-white text-sm font-black rounded-xl shadow-lg hover:bg-amber-600 transition-all">
                     <i data-lucide="edit-3" class="w-4 h-4 mr-2"></i> REVISI MEMO
                 </a>
+            @endif
+            
+           {{-- TOMBOL NONAKTIFKAN: Hanya jika Aktif/Final dan User memiliki Otoritas --}}
+            @php
+                $approverIds = is_array($memo->target_approvers) ? $memo->target_approvers : [];
+                if ($memo->approver_id) { $approverIds[] = $memo->approver_id; }
+                $hasAuthority = Auth::id() == $memo->user_id || in_array(Auth::id(), $approverIds);
+            @endphp
+
+            @if($memo->is_final && !$memo->is_deactivated && $hasAuthority)
+                <button type="button" onclick="confirmDeactivate({{ $memo->id }})" class="inline-flex items-center px-4 py-2 bg-gray-800 text-white text-sm font-black rounded-xl shadow-lg hover:bg-black transition-all">
+                    <i data-lucide="power-off" class="w-4 h-4 mr-2 text-red-500"></i> NONAKTIFKAN MEMO
+                </button>
             @endif
         </div>
     </div>
@@ -84,13 +97,18 @@
         {{-- Sidebar Informasi --}}
         <div class="lg:col-span-3 space-y-6 lg:sticky lg:top-8">
             <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Status Dokumen</h3>
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Status Dokumen</h3> 
                 <div class="flex flex-col space-y-4">
-                    @if($memo->is_rejected)
-                        <div class="flex items-center p-3 bg-red-50 border border-red-100 rounded-2xl">
-                            <div class="bg-red-500 p-2 rounded-xl text-white mr-3"><i data-lucide="x-circle" class="w-5 h-5"></i></div>
-                            <span class="text-red-700 font-extrabold text-sm uppercase">Dibatalkan / Perlu Revisi</span>
+                       @if($memo->is_deactivated)
+                        <div class="flex items-center p-3 bg-slate-100 border border-slate-200 rounded-2xl">
+                            <div class="bg-slate-800 p-2 rounded-xl text-white mr-3"><i data-lucide="slash" class="w-5 h-5"></i></div>
+                            <span class="text-slate-800 font-extrabold text-sm uppercase">Non-aktif</span>
                         </div>
+                    @elseif($memo->is_rejected)
+                            <div class="flex items-center p-3 bg-slate-100 border border-slate-200 rounded-2xl">
+                                <div class="bg-slate-800 p-2 rounded-xl text-white mr-3"><i data-lucide="slash" class="w-5 h-5"></i></div>
+                                <span class="text-slate-800 font-extrabold text-sm uppercase">Non-aktif</span>
+                            </div>
                     @elseif($memo->is_final)
                         <div class="flex items-center p-3 bg-green-50 border border-green-100 rounded-2xl">
                             <div class="bg-green-600 p-2 rounded-xl text-white mr-3"><i data-lucide="check-check" class="w-5 h-5"></i></div>
@@ -115,15 +133,14 @@
         </div>
         <div>
             <p class="text-[10px] text-gray-400 uppercase font-black">Tgl Dibuat</p>
-            <p class="text-sm font-bold text-gray-800">{{ $memo->created_at->format('d M Y, H:i') }} WIB</p>
+            <p class="text-sm font-bold text-gray-800">{{ $memo->created_at->format('d/m/y H:i') }} WIB</p>
         </div>
+        @if($tanggalBerlaku)
         <div>
-            <p class="text-[10px] text-gray-400 uppercase font-black">Berlaku Sampai</p>
-            <p class="text-sm font-bold text-red-800">
-                {{ $memo->valid_until ? \Carbon\Carbon::parse($memo->valid_until)->format('d M Y') : 'Tanpa Batas' }}
-            </p>
+            <p class="text-[10px] text-gray-400 uppercase font-black">Tanggal Berlaku</p>
+        <p class="text-sm font-bold text-gray-800"> {{ \Carbon\Carbon::parse($tanggalBerlaku)->format('d/m/y H:i') }} WIB</p>
         </div>
-
+@endif
         {{-- TAMBAHKAN SEKSI CC DI SINI --}}
         <div class="pt-3 border-t border-gray-100 mt-2">
             <p class="text-[10px] text-gray-400 uppercase font-black mb-1">Tembusan (CC):</p>
@@ -236,19 +253,25 @@
                     @endif
 
                     <div class="text-center mb-10">
-                        <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em] italic mb-2">Digital Signature Verified</h3>
+                        <h3 class="text-[15px] font-black text-gray-400 uppercase tracking-[0.4em] italic mb-2">Digital Signature Verified</h3>
                         <div class="h-1 w-20 bg-red-800 mx-auto rounded-full"></div>
                     </div>
                     
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        @foreach($memo->approvals as $approver)
+                          @php
+                           $realApprovals = $memo->approvals->reject(function($app) {
+                                $note = $app->pivot->note ?? '';
+                                return stripos($note, 'DINONAKTIFKAN') !== false;
+                            });
+                        @endphp
+                        @forelse($realApprovals as $approver)
                             @php
                                 $rawNote = $approver->pivot->note;
                                 $isDefaultNote = (strtolower($rawNote) === 'approved' || strtolower($rawNote) === 'memo diterbitkan');
                             @endphp
                             <div class="signature-card relative bg-white rounded-[2rem] flex flex-col items-center">
                                 {{-- 1. ROLE BADGE --}}
-                                <span class="px-4 py-1 bg-gray-900 text-white text-[9px] font-black uppercase tracking-widest rounded-full mb-4">
+                                <span class="px-4 py-1 bg-gray-900 text-white text-[14px] font-black uppercase tracking-widest rounded-full mb-4">
                                     {{ strtoupper($approver->role ?? 'N/A') }}
                                 </span>
 
@@ -286,10 +309,10 @@
                                     @endif
 
                                     {{-- 6. TIMESTAMP --}}
-                                    <div class="mt-3 flex items-center justify-center text-[8px] font-mono text-slate-400 bg-slate-50 py-1 px-3 rounded-full border border-slate-100 inline-flex">
-                                        <i data-lucide="clock" class="w-3 h-3 mr-1.5"></i>
-                                        {{ $approver->pivot->created_at->format('d/m/y H:i') }}
-                                    </div>
+                                   <div class="mt-3 flex items-center justify-center text-[15px] font-mono text-black bg-slate-50 py-1 px-3 rounded-full border border-slate-100 inline-flex">
+    <i data-lucide="clock" class="w-4 h-4 mr-1.5"></i>
+    {{ $approver->pivot->created_at->format('d/m/y H:i') }}
+</div>
                                 </div>
                             </div>
                         @endforeach
@@ -309,7 +332,10 @@
 {{-- Hidden Forms & Scripts --}}
 <form id="approve-form-{{ $memo->id }}" action="{{ route('memos.approve', $memo->id) }}" method="POST" class="hidden">@csrf<input type="hidden" name="note" id="note-input-{{ $memo->id }}"></form>
 <form id="reject-form-{{ $memo->id }}" action="{{ route('memos.reject', $memo->id) }}" method="POST" class="hidden">@csrf<input type="hidden" name="note" id="reject-note-input-{{ $memo->id }}"></form>
-
+<form id="deactivate-form-{{ $memo->id }}" action="{{ route('memos.deactivate', $memo->id) }}" method="POST" class="hidden">
+    @csrf
+    <input type="hidden" name="note" id="deactivate-note-input-{{ $memo->id }}">
+</form>
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
@@ -355,6 +381,31 @@
             if (result.isConfirmed) {
                 const form = document.getElementById('reject-form-' + memoId);
                 const input = document.getElementById('reject-note-input-' + memoId);
+                if (form && input) {
+                    input.value = result.value;
+                    form.submit();
+                }
+            }
+        });
+    }
+
+    function confirmDeactivate(memoId) {
+        Swal.fire({
+            title: 'Nonaktifkan Memo?',
+            text: "Memo yang sudah aktif akan dibatalkan/dihentikan masa berlakunya. Masukkan alasan:",
+            input: 'textarea',
+            inputPlaceholder: 'Tulis alasan penonaktifan...',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#111827',
+            confirmButtonText: 'Ya, Nonaktifkan',
+            cancelButtonText: 'Batal',
+            inputValidator: (value) => { if (!value) return 'Alasan wajib diisi!' },
+            customClass: { popup: 'rounded-[2rem]' }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.getElementById('deactivate-form-' + memoId);
+                const input = document.getElementById('deactivate-note-input-' + memoId);
                 if (form && input) {
                     input.value = result.value;
                     form.submit();

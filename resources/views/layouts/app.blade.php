@@ -113,12 +113,13 @@
             <i data-lucide="alert-circle" class="w-5 h-5 mr-3 text-red-600"></i>
             <span class="text-sm">Memo Ditolak</span>
         </a>
-
-        <a href="{{ route('memos.rejectedMemos', ['filter' => 'expired']) }}" 
-           class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ (request()->routeIs('memos.rejectedMemos') && request('filter') === 'expired') ? 'bg-gray-100 text-gray-900 font-bold border-l-4 border-amber-500' : 'text-gray-500 hover:bg-gray-50' }}">
-            <i data-lucide="calendar-x" class="w-5 h-5 mr-3 text-amber-500"></i>
-            <span class="text-sm">Memo Kadaluarsa</span>
+   {{-- MENU NON-AKTIF BARU --}}
+        <a href="{{ route('memos.deactivated') }}" 
+           class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('memos.deactivated') ? 'bg-gray-100 text-gray-900 font-bold border-l-4 border-slate-800' : 'text-gray-500 hover:bg-gray-50' }}">
+            <i data-lucide="power-off" class="w-5 h-5 mr-3 text-slate-800"></i>
+            <span class="text-sm">Memo Non-aktif</span>
         </a>
+        
                         <a href="{{ route('memos.drafts') }}" class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('memos.drafts') ? 'bg-gray-100 text-gray-900 font-bold' : 'text-gray-500 hover:bg-gray-50' }}">
                             <i data-lucide="archive" class="w-5 h-5 mr-3"></i>
                             <span class="text-sm">Memo Draf</span>
@@ -180,7 +181,7 @@
                 <div class="hidden md:flex flex-col text-right mr-1">
                     <p class="text-sm font-black text-gray-900 leading-none"> {{ Auth::user()->name }} </p>
                     <p class="text-[10px] font-bold text-red-600 mt-1 uppercase tracking-widest italic leading-none">
-                         {{ Auth::user()->role }} - {{ Auth::user()->division }} 
+                         {{ Auth::user()->name == 'Sastra Hamidjaja' ? 'Direktur Utama' : Auth::user()->role }} - {{ Auth::user()->division }}
                     </p>
                 </div>
                 

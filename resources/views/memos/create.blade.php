@@ -30,10 +30,7 @@
                     <label class="block text-sm font-semibold text-gray-700 mb-2 tracking-tight">Nomor Referensi</label>
                     <input type="text" name="reference_no" value="{{ old('reference_no', $autoRef) }}" readonly class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-500 font-mono outline-none cursor-not-allowed" required>
                 </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2 tracking-tight">Akhir Berlaku Memo</label>
-                    <input type="date" name="valid_until" value="{{ old('valid_until') }}" min="{{ date('Y-m-d') }}" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all outline-none" required>
-                </div>
+              
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2 tracking-tight">Perihal / Subjek</label>
                     <input type="text" name="subject" value="{{ old('subject') }}" placeholder="Contoh: Kegiatan Operasional..." class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all outline-none" required>

@@ -11,8 +11,8 @@ class Memo extends Model
 
     protected $fillable = [
         'user_id', 'approver_id', 'reference_no', 'recipient', 'sender', 
-        'subject', 'body_text', 'valid_until', 'cc_list', 'is_draft', 
-        'is_rejected', 'target_approvers' // Kolom baru
+        'subject', 'body_text', 'cc_list', 'is_draft', 
+        'is_rejected', 'target_approvers','is_deactivated' // Kolom baru
     ];
 
     protected $casts = [
@@ -20,6 +20,8 @@ class Memo extends Model
         'target_approvers' => 'array', // Casting array untuk ID terpilih
         'is_draft' => 'boolean',
         'is_rejected' => 'boolean',
+        'is_deactivated' => 'boolean',
+
     ];
 
     public function user() { return $this->belongsTo(User::class, 'user_id'); }

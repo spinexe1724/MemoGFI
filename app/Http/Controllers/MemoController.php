@@ -33,31 +33,39 @@ class MemoController extends Controller implements HasMiddleware
      * FUNGSI NOTIFIKASI BERANTAI
      * Mengirim notifikasi ke tahap approval berikutnya secara otomatis.
      */
-    private function notifyNextApprover(Memo $memo)
-    {
-        $memo->load('approvals');
-        $count = $memo->approvals->count();
-        $nextApprovers = collect();
+  private function notifyNextApprover(Memo $memo) 
+{
+    // 1. Segarkan data approvals agar sistem tahu tanda tangan terbaru sudah masuk
+    $memo->load('approvals');
 
-        // Tahap 1: Ke Manager/BM tujuan (Tanda tangan ke-2)
-        if ($count == 1) {
-            if ($memo->approver_id) {
-                $target = User::find($memo->approver_id);
-                if ($target) $nextApprovers->push($target);
-            }
-        } 
-        // Tahap 2: Ke Jajaran GM/Direksi yang dipilih (Tanda tangan ke-3 dst)
-        elseif ($count >= 2 && !$memo->is_final) {
-            $selectedIds = $memo->target_approvers ?? [];
-            if (!empty($selectedIds)) {
-                $nextApprovers = User::whereIn('id', $selectedIds)->get();
-            }
-        }
+    // 2. Jika memo sudah FINAL setelah tanda tangan terakhir, jangan kirim notifikasi lagi
+    if ($memo->is_final) return;
 
-        if ($nextApprovers->count() > 0) {
-            Notification::send($nextApprovers, new MemoApprovalNotification($memo, Auth::user()->name));
-        }
+    $count = $memo->approvals->count();
+    $next = collect();
+
+    // Tentukan siapa penerima berikutnya
+    if ($count == 1 && $memo->approver_id) { 
+        $target = User::find($memo->approver_id); 
+        if ($target) $next->push($target); 
+    } elseif ($count >= 2) { 
+        $next = User::whereIn('id', $memo->target_approvers ?? [])->get(); 
     }
+
+    // --- PERBAIKAN UTAMA: FILTER PENERIMA ---
+    // Ambil semua ID user yang SUDAH tanda tangan
+    $alreadySignedIds = $memo->approvals->pluck('id')->toArray();
+
+    // Keluarkan mereka dari daftar penerima email notifikasi
+    $next = $next->reject(function($user) use ($alreadySignedIds) {
+        return in_array($user->id, $alreadySignedIds);
+    });
+
+    // Kirim notifikasi hanya jika masih ada orang yang belum tanda tangan
+    if ($next->count() > 0) {
+        Notification::send($next, new \App\Notifications\MemoApprovalNotification($memo, Auth::user()->name));
+    }
+}
 
     /**
      * DASHBOARD UTAMA
@@ -148,24 +156,16 @@ class MemoController extends Controller implements HasMiddleware
       public function rejectedMemos(Request $request)
     {
         $user = Auth::user();
-        $filter = $request->get('filter', 'rejected'); // Default ke 'rejected'
         
         $allMemos = Memo::with(['user', 'approvals', 'approver'])
                         ->where('is_draft', false)
+                        ->where('is_rejected', true)
+                        ->where('is_deactivated', false)
                         ->latest()->get();
 
-        $memos = $allMemos->filter(function($memo) use ($user, $filter) {
-            $isExpired = $memo->valid_until ? Carbon::now()->startOfDay()->gt(Carbon::parse($memo->valid_until)) : false;
+        $memos = $allMemos->filter(function($memo) use ($user) {
             
-            // Logika Pemisahan Strik (Eksklusif)
-            if ($filter === 'expired') {
-                // Menu Kadaluarsa: Hanya tampilkan yang benar-benar expired
-                if (!$isExpired) return false;
-            } else {
-                // Menu Ditolak: Hanya tampilkan yang ditolak DAN belum kadaluarsa
-                if (!$memo->is_rejected || $isExpired) return false;
-            }
-
+         
             // Kontrol Akses
             if ($memo->user_id == $user->id || $user->level == 3) return true;
             if (in_array($user->role, ['admin', 'bm']) && $memo->user->branch === $user->branch) return true;
@@ -174,9 +174,8 @@ class MemoController extends Controller implements HasMiddleware
             return in_array($user->division, $ccList);
         });
 
-        $pageTitle = $filter === 'expired' ? 'Daftar Memo Kadaluarsa' : 'Daftar Memo Ditolak';
 
-        return view('memos.index', ['memos' => $memos, 'user' => $user, 'pageTitle' => $pageTitle]);
+        return view('memos.index', ['memos' => $memos, 'user' => $user, 'pageTitle' => 'Daftar Memo Ditolak']);
     }
 
     /**
@@ -251,11 +250,12 @@ class MemoController extends Controller implements HasMiddleware
             'sender' => Auth::user()->division, 
             'subject' => $request->subject, 
             'body_text' => $request->body_text,
-            'valid_until' => $request->valid_until, 
             'cc_list' => $request->cc_list, 
             'is_draft' => $request->input('action') === 'draft', 
             'approver_id' => $request->approver_id,
             'target_approvers' => $request->target_approvers,
+            'is_deactivated' => false, // Default false
+
         ]);
 
         if ($request->hasFile('attachments')) {
@@ -314,7 +314,6 @@ class MemoController extends Controller implements HasMiddleware
             'recipient'   => $request->recipient,
             'subject'     => $request->subject,
             'body_text'   => $request->body_text,
-            'valid_until' => $request->valid_until,
             'cc_list'     => $request->cc_list,
             'is_draft'    => $request->input('action') === 'draft',
             'is_rejected' => false, 
@@ -372,17 +371,22 @@ class MemoController extends Controller implements HasMiddleware
         },
         'attachments' 
     ])->findOrFail($id); 
-    
+     $tanggalBerlaku = null;
+        if ($memo->is_final && $memo->approvals->count() > 0) {
+            // Mengambil approval terakhir berdasarkan waktu pembuatan di tabel pivot
+            $lastApproval = $memo->approvals->sortByDesc('pivot.created_at')->first();
+            $tanggalBerlaku = $lastApproval->pivot->created_at;
+        }
+
     $canApprove = self::shouldUserApprove($user, $memo); 
-    return view('memos.show', compact('memo', 'user', 'canApprove')); 
+    return view('memos.show', compact('memo', 'user', 'canApprove','tanggalBerlaku')); 
 }
 
     /**
      * LOGIKA: APAKAH USER BERHAK MENYETUJUI?
      */
     public static function shouldUserApprove($user, $memo) {
-        $isExpired = $memo->valid_until ? Carbon::now()->startOfDay()->gt(Carbon::parse($memo->valid_until)) : false;
-        if ($memo->is_final || $memo->approvals->contains('id', $user->id) || $memo->is_rejected || $memo->is_draft || $isExpired) return false;
+        if ($memo->is_final || $memo->approvals->contains('id', $user->id) || $memo->is_rejected || $memo->is_draft || $memo->is_deactivated) return false;
         
         $count = $memo->approvals->count();
         $selectedIds = $memo->target_approvers ?? [];
@@ -431,7 +435,79 @@ class MemoController extends Controller implements HasMiddleware
         if ($memo->user) $memo->user->notify(new MemoRejectedNotification($memo, $user->name, $reason));
         return redirect()->route('memos.index')->with('success', 'Memo ditolak.');
     }
+    public function deactivatedMemos(Request $request)
+    {
+        $user = Auth::user();
+        
+        // Ambil memo yang is_deactivated bernilai true
+        $memos = Memo::with(['user', 'approvals', 'approver'])
+                        ->where('is_deactivated', true)
+                        ->latest()->get();
 
+        // Terapkan filter akses yang sama dengan menu lainnya
+        $memos = $memos->filter(function($memo) use ($user) {
+            // Pembuat atau Superadmin (Level 3) boleh lihat
+            if ($memo->user_id == $user->id || $user->level == 3) return true;
+            
+            // Admin/BM di cabang yang sama boleh lihat
+            if (in_array($user->role, ['admin', 'bm']) && optional($memo->user)->branch === $user->branch) return true;
+            
+            // CC List (hanya jika sudah pernah final)
+            $ccList = is_array($memo->cc_list) ? $memo->cc_list : [];
+            return in_array($user->division, $ccList);
+        });
+
+        return view('memos.index', [
+            'memos' => $memos, 
+            'user' => $user, 
+            'pageTitle' => 'Daftar Memo Non-aktif'
+        ]);
+    }
+
+      public function deactivate(Request $request, $id)
+    {
+        $memo = Memo::findOrFail($id);
+        $user = Auth::user();
+
+        // 1. CEK STATUS: Hanya memo yang sudah AKTIF/FINAL yang bisa dinonaktifkan
+        if (!$memo->is_final) {
+            return back()->with('error', 'Hanya memo berstatus AKTIF yang dapat dinonaktifkan secara manual.');
+        }
+
+        // Jika memo memang sudah dibatalkan sebelumnya
+     if ($memo->is_deactivated) {
+            return back()->with('error', 'Memo ini sudah berstatus non-aktif.');
+        }
+
+        // 2. CEK OTORITAS: Hanya Pembuat atau Penyetuju terkait
+        $approverIds = is_array($memo->target_approvers) ? $memo->target_approvers : [];
+        if ($memo->approver_id) { $approverIds[] = $memo->approver_id; }
+
+        $isCreator = $memo->user_id == $user->id;
+        $isApprover = in_array($user->id, $approverIds);
+
+        if (!$isCreator && !$isApprover) {
+            return back()->with('error', 'Otoritas ditolak. Anda tidak terlibat dalam alur persetujuan memo ini.');
+        }
+
+        $reason = $request->note ?? 'Memo dinonaktifkan secara manual oleh otoritas terkait.';
+
+        DB::transaction(function() use ($memo, $user, $reason) {
+            // Catat siapa yang membatalkan dan alasannya di riwayat tanda tangan
+            $memo->approvals()->attach($user->id, [
+                'note' => 'DINONAKTIFKAN: ' . $reason,
+                'created_at' => now()
+            ]);
+
+            // Ubah status menjadi rejected agar tidak muncul di daftar memo aktif
+             $memo->update([
+            'is_deactivated' => true,
+            'is_rejected' => true // Set true agar hilang dari list aktif utama
+        ]);
+        });
+
+        return redirect()->route('memos.show', $id)->with('success', 'Memo telah berhasil dinonaktifkan.');
+    }
     /**
      * FUNGSI: HAPUS PERMANEN
      */

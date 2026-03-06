@@ -40,6 +40,8 @@ Route::get('/memo/approvals', [MemoController::class, 'pendingApprovals'])->name
     Route::post('/memos/upload-image', [MemoController::class, 'uploadImage'])->name('memos.upload');
     Route::get('/memos/my-own', [App\Http\Controllers\MemoController::class, 'myOwnMemos'])->name('memos.own');
     Route::delete('/memos/{id}', [MemoController::class, 'destroy'])->name('memos.destroy');
+    Route::post('/memos/{id}/deactivate', [MemoController::class, 'deactivate'])->name('memos.deactivate');
+    Route::get('/memos-deactivated', [MemoController::class, 'deactivatedMemos'])->name('memos.deactivated');
 
 // Rute untuk menghapus LAMPIRAN (Gunakan URL yang berbeda agar tidak tertukar)
 Route::delete('/attachments/{id}', [MemoController::class, 'destroyAttachment'])->name('memos.attachment.destroy');

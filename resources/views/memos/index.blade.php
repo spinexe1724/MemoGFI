@@ -72,7 +72,6 @@
                 <tbody class="divide-y divide-gray-50">
                     @foreach($memos as $memo)
                         @php
-                            $isExpired = $memo->valid_until ? \Carbon\Carbon::now()->startOfDay()->gt(\Carbon\Carbon::parse($memo->valid_until)) : false;
                             
                             // Logika "Mengetahui"
                             $targetApproverId = $memo->approver_id;
@@ -104,17 +103,15 @@
                             $otherApprovers = $memo->approvals->whereNotIn('id', $excludedIds);
                         @endphp
                         <tr class="hover:bg-gray-50/80 transition-colors group">
-                            <td class="py-6 text-center text-gray-400 font-mono text-xs">#{{ $memo->id }}</td>
+                            <td class="py-6 text-center text-gray-400 font-mono text-xs">{{ $loop->iteration }}</td>
                             <td class="py-6">
                                 <div class="flex flex-col">
                                     <span class="font-extrabold text-gray-900 group-hover:text-blue-700 transition-colors">{{ $memo->subject }}</span>
-                                    <span class="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wider">{{ $memo->reference_no }}</span>
+                                    <span class="text-[15px] font-bold text-gray-400 mt-1 uppercase tracking-wider">{{ $memo->reference_no }}</span>
                                     
                                     <div class="mt-2 flex items-center text-[10px]">
                                         <i data-lucide="calendar-days" class="w-3 h-3 mr-1 text-gray-300"></i>
-                                        <span class="{{ $isExpired ? 'text-red-500 font-bold' : 'text-gray-400 font-medium' }}">
-                                            Exp: {{ $memo->valid_until ? \Carbon\Carbon::parse($memo->valid_until)->format('d M Y') : '∞' }}
-                                        </span>
+                                       
                                     </div>
                                 </div>
                             </td>
@@ -140,7 +137,9 @@
                             </td>
                             <td class="py-6">
                                 <div class="flex flex-col items-center gap-2">
-                                    @if($memo->is_draft)
+                                    @if($memo->is_deactivated)
+                                        <span class="px-3 py-1 bg-slate-800 text-white text-[10px] font-black rounded-full border border-slate-900 uppercase tracking-tighter">Non-aktif</span>
+                                    @elseif($memo->is_draft)
                                         <span class="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-black rounded-full border border-amber-200 uppercase tracking-tighter">Draf</span>
                                     @elseif($memo->is_rejected)
                                         <div class="flex flex-col items-center">
@@ -150,14 +149,12 @@
                                             @endphp
                                             
                                         </div>
-                                    @elseif($isExpired)
-                                        <span class="px-3 py-1 bg-gray-100 text-gray-600 text-[10px] font-black rounded-full border border-gray-200 uppercase tracking-tighter">Kadaluarsa</span>
+                                   
                                     @elseif($memo->is_final)
                                         <span class="px-3 py-1 bg-green-100 text-green-700 text-[10px] font-black rounded-full border border-green-200 uppercase tracking-tighter">Aktif</span>
                                     @else
                                         <div class="flex flex-col items-center">
                                             <span class="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-full border border-blue-200 uppercase tracking-tighter inline-block w-fit">Pending</span>
-                                            <span class="text-[9px] text-slate-400 font-bold italic mt-1">{{ $currentSignCount }} / {{ $target }} Signatures</span>
                                         </div>
                                     @endif
                                     
@@ -184,7 +181,22 @@
                                             <i data-lucide="file-text" class="w-4 h-4"></i>
                                         </a>
                                     @endif
+ {{-- TOMBOL NONAKTIFKAN: Hanya jika Aktif/Final dan User memiliki Otoritas --}}
+                                    @php
+                                        $approverIds = is_array($memo->target_approvers) ? $memo->target_approvers : [];
+                                        if ($memo->approver_id) { $approverIds[] = $memo->approver_id; }
+                                        $hasAuthority = Auth::id() == $memo->user_id || in_array(Auth::id(), $approverIds);
+                                    @endphp
 
+                                    @if($memo->is_final && !$memo->is_rejected && $hasAuthority)
+                                        <button type="button" onclick="confirmDeactivate({{ $memo->id }})" class="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-gray-900 hover:border-gray-900 transition-all" title="Nonaktifkan Memo">
+                                            <i data-lucide="power" class="w-4 h-4 text-red-500"></i>
+                                        </button>
+                                        <form id="deactivate-form-{{ $memo->id }}" action="{{ route('memos.deactivate', $memo->id) }}" method="POST" class="hidden">
+                                            @csrf
+                                            <input type="hidden" name="note" id="deactivate-note-input-{{ $memo->id }}">
+                                        </form>
+                                    @endif
                                     {{-- PERBAIKAN: Izinkan edit jika draf, ditolak, atau masih pending (baru tanda tangan pembuat saja) --}}
                                     @if(Auth::id() == $memo->user_id && ($memo->is_draft || $memo->is_rejected || (!$memo->is_final && $memo->approvals->count() <= 1)))
                                         <a href="{{ route('memos.edit', $memo->id) }}" class="p-2 bg-white border border-gray-200 rounded-xl text-gray-400 hover:text-amber-600 hover:border-amber-200 transition-all" title="Revisi / Edit">
@@ -237,6 +249,32 @@
         $('.dataTables_filter input').addClass('bg-gray-50 border border-gray-200 rounded-2xl px-5 py-2.5 focus:ring-4 focus:ring-red-50 focus:border-red-800 transition-all outline-none w-72');
         $('.dataTables_length select').addClass('bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 outline-none');
     });
+     function confirmDeactivate(memoId) {
+        Swal.fire({
+            title: 'Nonaktifkan Memo?',
+            text: "Memo yang sudah aktif akan dibatalkan masa berlakunya. Berikan alasan:",
+            input: 'textarea',
+            inputPlaceholder: 'Tulis alasan penonaktifan...',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#111827',
+            confirmButtonText: 'Ya, Nonaktifkan',
+            cancelButtonText: 'Batal',
+            inputValidator: (value) => { if (!value) return 'Alasan wajib diisi!' },
+            customClass: { popup: 'rounded-[2rem]' }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.getElementById('deactivate-form-' + memoId);
+                const input = document.getElementById('deactivate-note-input-' + memoId);
+                if (form && input) {
+                    input.value = result.value;
+                    form.submit();
+                } else {
+                    console.error('Form penonaktifan tidak ditemukan untuk ID: ' + memoId);
+                }
+            }
+        });
+    }
 </script>
 
 <style>
