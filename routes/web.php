@@ -5,6 +5,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\ShowController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -34,15 +35,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::get('/memo/approvals', [MemoController::class, 'pendingApprovals'])->name('memos.approvals');
         Route::get('/memos/my-memos', [MemoController::class, 'myMemos'])->name('memos.my_memos');
         Route::get('/memos/rejectedMemos', [MemoController::class, 'rejectedMemos'])->name('memos.rejectedMemos');
-    Route::get('/memos/drafts', [MemoController::class, 'drafts'])->name('memos.drafts');
+     Route::get('/memos/drafts', [MemoController::class, 'drafts'])->name('memos.drafts');
          Route::post('/memos/{id}/approve', [MemoController::class, 'approve'])->name('memos.approve');
     Route::post('/memos/{id}/reject', [MemoController::class, 'reject'])->name('memos.reject');
     Route::post('/memos/upload-image', [MemoController::class, 'uploadImage'])->name('memos.upload');
     Route::get('/memos/my-own', [App\Http\Controllers\MemoController::class, 'myOwnMemos'])->name('memos.own');
     Route::delete('/memos/{id}', [MemoController::class, 'destroy'])->name('memos.destroy');
-    Route::post('/memos/{id}/deactivate', [MemoController::class, 'deactivate'])->name('memos.deactivate');
+Route::post('/memos/{id}/deactivate', [MemoController::class, 'deactivate'])->name('memos.deactivate');
     Route::get('/memos-deactivated', [MemoController::class, 'deactivatedMemos'])->name('memos.deactivated');
-
 // Rute untuk menghapus LAMPIRAN (Gunakan URL yang berbeda agar tidak tertukar)
 Route::delete('/attachments/{id}', [MemoController::class, 'destroyAttachment'])->name('memos.attachment.destroy');
       Route::get('/attachments/{id}/download', [MemoController::class, 'downloadAttachment'])->name('memos.attachment.download');
@@ -53,7 +53,11 @@ Route::delete('/attachments/{id}', [MemoController::class, 'destroyAttachment'])
     // Resource route untuk Memos (Index, Create, Store, Edit, Update, Show, Destroy)
     Route::resource('memos', MemoController::class);
     
-    
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/showprofile', [ShowController::class, 'edit'])->name('show.edit');
+        Route::put('/profile', [ShowController::class, 'update'])->name('show.update');
+    });
+
     
     // Rute Khusus Persetujuan & Penolakan (GM & Direksi)
    

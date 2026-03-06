@@ -113,13 +113,13 @@
             <i data-lucide="alert-circle" class="w-5 h-5 mr-3 text-red-600"></i>
             <span class="text-sm">Memo Ditolak</span>
         </a>
-   {{-- MENU NON-AKTIF BARU --}}
+
+        {{-- MENU NON-AKTIF BARU --}}
         <a href="{{ route('memos.deactivated') }}" 
            class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('memos.deactivated') ? 'bg-gray-100 text-gray-900 font-bold border-l-4 border-slate-800' : 'text-gray-500 hover:bg-gray-50' }}">
             <i data-lucide="power-off" class="w-5 h-5 mr-3 text-slate-800"></i>
             <span class="text-sm">Memo Non-aktif</span>
         </a>
-        
                         <a href="{{ route('memos.drafts') }}" class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('memos.drafts') ? 'bg-gray-100 text-gray-900 font-bold' : 'text-gray-500 hover:bg-gray-50' }}">
                             <i data-lucide="archive" class="w-5 h-5 mr-3"></i>
                             <span class="text-sm">Memo Draf</span>
@@ -144,18 +144,16 @@
             @endif
 
             {{-- Bagian Sistem --}}
-            <div class="pt-4 border-t border-gray-50">
-                <p class="px-4 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Sistem</p>
-                <div class="space-y-1">
-                    <form action="{{ route('logout') }}" method="POST" id="logout-form">
-                        @csrf
-                        <button type="submit" class="w-full flex items-center px-4 py-3 text-gray-500 rounded-xl hover:bg-red-50 hover:text-red-600 transition-all duration-200 group">
-                            <i data-lucide="log-out" class="w-5 h-5 mr-3 transition-transform group-hover:translate-x-1"></i>
-                            <span class="font-bold text-sm">Keluar Aplikasi</span>
-                        </button>
-                    </form>
-                </div>
-            </div>
+            <div class="px-4 pb-8 mt-auto border-t border-gray-50 pt-4 bg-white">
+        <p class="px-4 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Sistem</p>
+        <form action="{{ route('logout') }}" method="POST" id="logout-form" class="mb-6">
+            @csrf
+            <button type="submit" class="w-full flex items-center px-4 py-3 text-gray-500 rounded-xl hover:bg-red-50 hover:text-red-600 transition-all duration-200 group">
+                <i data-lucide="log-out" class="w-5 h-5 mr-3"></i>
+                <span class="font-bold text-sm">Keluar Aplikasi</span>
+            </button>
+        </form>
+    </div>
         </nav>
 
         <div class="absolute bottom-6 left-0 w-full px-8">
@@ -178,20 +176,55 @@
             </div>
 
             <div class="flex items-center space-x-4">
-                <div class="hidden md:flex flex-col text-right mr-1">
-                    <p class="text-sm font-black text-gray-900 leading-none"> {{ Auth::user()->name }} </p>
-                    <p class="text-[10px] font-bold text-red-600 mt-1 uppercase tracking-widest italic leading-none">
-                         {{ Auth::user()->name == 'Sastra Hamidjaja' ? 'Direktur Utama' : Auth::user()->role }} - {{ Auth::user()->division }}
-                    </p>
+    <div class="hidden md:flex flex-col text-right mr-1">
+        <p class="text-sm font-black text-gray-900 leading-none">{{ Auth::user()->name }}</p>
+        <p class="text-[10px] font-bold text-red-600 mt-1 uppercase tracking-widest italic leading-none">
+            {{ Auth::user()->role }} - {{ Auth::user()->division }}
+        </p>
+    </div>
+    
+    <div class="relative" id="userDropdownContainer">
+        <button onclick="toggleUserMenu()" class="flex items-center group focus:outline-none">
+            <div class="p-0.5 rounded-full bg-gradient-to-tr from-red-600 to-amber-400 shadow-md transition-all group-hover:scale-105 active:scale-95">
+                <div class="w-10 h-10 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center overflow-hidden">
+                    {{-- Inisial User (BS, dsb) --}}
+                    <span class="text-red-800 font-black text-sm uppercase">
+                        {{ substr(Auth::user()->name, 0, 1) }}{{ substr(strrchr(Auth::user()->name, " "), 1, 1) ?: '' }}
+                    </span>
                 </div>
-                
-                <div class="relative group">
-                    <div class="p-0.5 rounded-full bg-gradient-to-tr from-red-600 to-amber-400 shadow-md">
-                        <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=fff&color=b91c1c&bold=true" 
-                             class="w-10 h-10 rounded-full border-2 border-white object-cover" 
-                             alt="User Profile">
+            </div>
+        </button>
+
+        <div id="userMenu" class="hidden absolute right-0 mt-3 w-64 bg-white rounded-[2rem] shadow-2xl border border-gray-100 py-6 px-5 z-50 transform origin-top-right transition-all duration-200">
+            <div class="text-center mb-6">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Welcome</p>
+                <div class="w-16 h-16 mx-auto mb-3 p-0.5 rounded-full bg-gray-100 flex items-center justify-center border-2 border-red-50">
+                     <span class="text-red-800 font-black text-xl uppercase">
+                        {{ substr(Auth::user()->name, 0, 1) }}{{ substr(strrchr(Auth::user()->name, " "), 1, 1) ?: '' }}
+                    </span>
+                </div>
+                <h3 class="text-gray-900 font-black text-base leading-tight">{{ Auth::user()->name }}</h3>
+                <form action="{{ route('logout') }}" method="POST" class="mt-2">
+                    @csrf
+                    <button type="submit" class="px-4 py-1.5 bg-red-50 text-red-600 text-[10px] font-black rounded-full hover:bg-red-100 transition-colors uppercase italic">
+                        Sign Out
+                    </button>
+                </form>
+            </div>
+
+            <div class="space-y-1 border-t border-dashed border-gray-100 pt-4">
+                <a href="{{ route('show.edit') }}" class="flex items-center p-3 rounded-2xl hover:bg-gray-50 transition-all group">
+                    <div class="w-8 h-8 rounded-lg bg-cyan-50 flex items-center justify-center mr-3 group-hover:bg-cyan-100">
+                        <i data-lucide="user" class="w-4 h-4 text-cyan-600"></i>
                     </div>
-                </div>
+                    <div>
+                        <p class="text-xs font-bold text-gray-800">My Profile</p>
+                        <p class="text-[9px] text-gray-400 font-medium">Account settings & password</p>
+                    </div>
+                </a>
+            </div>
+    </div>
+</div>
             </div>
         </nav>
 
@@ -213,6 +246,7 @@
     </script>
     @stack('scripts')
     <style>
+    
     /* Transisi halus untuk semua elemen layout */
     #sidebar, 
     .sm\:ml-64, 
@@ -302,7 +336,24 @@
     document.querySelectorAll('#sidebar nav a span').forEach(el => {
         el.classList.add('menu-text');
     });
+    function toggleUserMenu() {
+    const menu = document.getElementById('userMenu');
+    menu.classList.toggle('hidden');
+    
+    // Animasi muncul sedikit (opsional)
+    if (!menu.classList.contains('hidden')) {
+        menu.classList.add('animate-in', 'fade-in', 'zoom-in-95', 'duration-200');
+    }
+}
 
+// Menutup dropdown saat klik di luar menu
+window.addEventListener('click', function(e) {
+    const menu = document.getElementById('userMenu');
+    const container = document.getElementById('userDropdownContainer');
+    if (container && !container.contains(e.target)) {
+        menu.classList.add('hidden');
+    }
+});
     // Tambahkan ID pada container logo untuk manipulasi CSS
     const logoDiv = document.querySelector('#sidebar .sticky .flex');
     if(logoDiv) logoDiv.id = 'sidebar-logo-container';
@@ -330,22 +381,28 @@
     // Menggunakan fungsi toggleSidebar() yang sudah ada di kode Anda, 
     // tapi ditambahkan overlay agar lebih user-friendly.
     const originalToggleSidebar = window.toggleSidebar;
-    window.toggleSidebar = function() {
-        const sidebar = document.getElementById('sidebar');
-        sidebar.classList.toggle('-translate-x-full');
+    // Update fungsi toggleSidebar di bagian bawah script Anda
+window.toggleSidebar = function() {
+    const sidebar = document.getElementById('sidebar');
+    const body = document.body;
+    
+    sidebar.classList.toggle('-translate-x-full');
+    
+    let overlay = document.querySelector('.sidebar-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.className = 'sidebar-overlay';
+        overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); z-index:45;";
+        overlay.onclick = window.toggleSidebar;
+        document.body.appendChild(overlay);
         
-        // Tambahkan/Hapus Overlay
-        let overlay = document.querySelector('.sidebar-overlay');
-        if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.className = 'sidebar-overlay';
-            overlay.onclick = window.toggleSidebar;
-            document.body.appendChild(overlay);
-        } else {
-            overlay.remove();
-        }
-    };
-
+        // Mencegah body utama di-scroll saat menu buka
+        body.style.overflow = 'hidden';
+    } else {
+        overlay.remove();
+        body.style.overflow = 'auto';
+    }
+};
     lucide.createIcons();
 </script>
 </body>
