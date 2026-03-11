@@ -213,7 +213,7 @@
             </div>
 
             <div class="space-y-1 border-t border-dashed border-gray-100 pt-4">
-                <a href="{{ route('show.edit') }}" class="flex items-center p-3 rounded-2xl hover:bg-gray-50 transition-all group">
+                <a href="{{ route('show.view') }}" class="flex items-center p-3 rounded-2xl hover:bg-gray-50 transition-all group">
                     <div class="w-8 h-8 rounded-lg bg-cyan-50 flex items-center justify-center mr-3 group-hover:bg-cyan-100">
                         <i data-lucide="user" class="w-4 h-4 text-cyan-600"></i>
                     </div>

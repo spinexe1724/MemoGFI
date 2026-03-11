@@ -155,10 +155,10 @@ $branch = [
    
     ];
 
-  foreach ($bm as $bms) {
+  foreach ($admin as $admins) {
         User::create([
-            'name' => $bms['name'],
-            'email' => $bms['email'],
+            'name' => $admins['name'],
+            'email' => $admins['email'],
             'password' => bcrypt('password'),
             'role' => 'admin',
             'level' => '2',
@@ -166,5 +166,6 @@ $branch = [
 
         ]);
     }
+    
 }
 }

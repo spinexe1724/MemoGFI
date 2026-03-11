@@ -54,7 +54,7 @@ Route::delete('/attachments/{id}', [MemoController::class, 'destroyAttachment'])
     Route::resource('memos', MemoController::class);
     
     Route::middleware(['auth'])->group(function () {
-        Route::get('/showprofile', [ShowController::class, 'edit'])->name('show.edit');
+        Route::get('/showprofile', [ShowController::class, 'view'])->name('show.view');
         Route::put('/profile', [ShowController::class, 'update'])->name('show.update');
     });
 

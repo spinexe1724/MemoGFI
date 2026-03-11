@@ -72,6 +72,10 @@
                                 class="w-full px-6 py-4 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:border-[#800000] focus:bg-white transition-all duration-300 outline-none placeholder:text-slate-300 font-semibold"
                                 placeholder="••••••••">
                         </div>
+                          {{-- TAUTAN LUPA PASSWORD --}}
+                            <a href="{{ route('password.request') }}" class="text-[11px] font-bold text-[#800000] hover:underline">
+                                Lupa Kata Sandi?
+                            </a>
 
                         <div class="pt-2">
                             <button type="submit" 

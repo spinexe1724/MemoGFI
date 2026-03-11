@@ -13,16 +13,20 @@
             background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0);
             background-size: 24px 24px;
         }
-        /* Custom scrollbar untuk form yang panjang */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #800000; border-radius: 10px; }
+
+        /* Gaya Kustom untuk Dropdown (Select) */
+        .custom-select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 1.25rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 3.5rem !important;
         }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #800000;
-            border-radius: 10px;
+        .custom-select:focus {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23800000' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
         }
     </style>
 </head>
@@ -89,25 +93,39 @@
                         </div>
                     </div>
 
+                {{-- DROPDOWN JABATAN (ROLE) --}}
                     <div class="space-y-1">
-                        <label class="block text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Jabatan</label>
-                        <input type="text" name="jabatan" required 
-                            class="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:border-[#800000] focus:bg-white transition-all outline-none font-semibold" 
-                            placeholder="Contoh: Manager / Staff / Supervisor">
+                        <label class="block text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Jabatan (Role)</label>
+                        <select name="role" required 
+                            class="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:border-[#800000] focus:bg-white transition-all outline-none font-semibold appearance-none">
+                            <option value="">-- Pilih Jabatan --</option>
+                            @foreach($roles as $key => $value)
+                                <option value="{{ $key }}" {{ old('role') == $key ? 'selected' : '' }}>{{ $value }}</option>
+                            @endforeach
+                        </select>
                     </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {{-- DROPDOWN DIVISI --}}
                         <div class="space-y-1">
                             <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Divisi</label>
-                            <input type="text" name="divisi" required 
-                                class="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:border-[#800000] focus:bg-white transition-all outline-none font-semibold"
-                                placeholder="Contoh: IT / HR / Finance">
+                            <select name="division" required 
+                                class="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:border-[#800000] focus:bg-white transition-all outline-none font-semibold appearance-none">
+                                <option value="">-- Pilih Divisi --</option>
+                                @foreach($divisions as $div)
+                                    <option value="{{ $div->name }}" {{ old('division') == $div->name ? 'selected' : '' }}>{{ $div->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
+                         {{-- DROPDOWN CABANG --}}
                         <div class="space-y-1">
                             <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Cabang</label>
-                            <input type="text" name="cabang" required 
-                                class="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:border-[#800000] focus:bg-white transition-all outline-none font-semibold"
-                                placeholder="Contoh: Jakarta / Surabaya">
+                            <select name="branch" required 
+                                class="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:border-[#800000] focus:bg-white transition-all outline-none font-semibold appearance-none">
+                                <option value="">-- Pilih Cabang --</option>
+                                @foreach($branches as $br)
+                                    <option value="{{ $br->code }}" {{ old('branch') == $br->code ? 'selected' : '' }}>{{ $br->name }} ({{ $br->code }})</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
 

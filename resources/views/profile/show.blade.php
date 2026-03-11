@@ -55,13 +55,7 @@
                     </div>
                 </div>
 
-                <div class="bg-black rounded-[2rem] p-6 text-white overflow-hidden relative group cursor-pointer">
-                    <div class="relative z-10">
-                        <p class="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-1">Butuh Bantuan?</p>
-                        <p class="text-xs font-medium text-gray-400">Hubungi tim IT jika Anda mengalami kendala akses data.</p>
-                    </div>
-                    <i data-lucide="help-circle" class="absolute right-[-10px] bottom-[-10px] w-20 h-20 text-white/5 transform -rotate-12 group-hover:rotate-0 transition-transform"></i>
-                </div>
+                
             </div>
 
             {{-- Right Column: Form Fields --}}
@@ -95,8 +89,8 @@
                             <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Full Name</label>
                             <div class="relative">
                                 <i data-lucide="user" class="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-red-800"></i>
-                                <input type="text" name="name" value="{{ old('name', $user->name) }}" required
-                                       class="w-full pl-12 pr-6 py-4 bg-white border border-gray-100 text-gray-900 text-sm rounded-2xl focus:ring-4 focus:ring-red-500/5 focus:border-red-800 transition-all outline-none font-bold shadow-sm">
+                                <input type="text"  name="name" value="{{ old('name', $user->name) }}" disabled
+                                       class="w-full pl-12 pr-6 py-4 bg-gray-50 border-none text-gray-400 text-sm rounded-2xl cursor-not-allowed font-bold">
                             </div>
                         </div>
                     </div>
