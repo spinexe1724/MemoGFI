@@ -52,7 +52,7 @@
                 <div class="absolute -top-20 -right-20 w-80 h-80 bg-black rounded-full mix-blend-multiply filter blur-[100px] opacity-30"></div>
             </div>
 
-            <div class="p-8 md:p-16 flex flex-col justify-center bg-white max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="p-8 md:p-16 flex flex-col justify-center bg-white max-h-[90vh]">
                 <div class="mb-8">
                     <div class="lg:hidden mb-6">
                         <span class="text-[#800000] font-black text-3xl italic">GRATAMA</span>
@@ -79,56 +79,68 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="space-y-1">
-                            <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Kata Sandi</label>
-                            <input type="password" name="password" required 
-                                class="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:border-[#800000] focus:bg-white transition-all outline-none font-semibold"
-                                placeholder="••••••••">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Konfirmasi Sandi</label>
-                            <input type="password" name="password_confirmation" required 
-                                class="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:border-[#800000] focus:bg-white transition-all outline-none font-semibold"
-                                placeholder="••••••••">
-                        </div>
-                    </div>
+    {{-- Kata Sandi --}}
+    <div class="space-y-1 relative">
+        <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Kata Sandi</label>
+        <div class="relative">
+            <input type="password" name="password" id="password" required 
+                class="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:border-[#800000] focus:bg-white transition-all outline-none font-semibold"
+                placeholder="••••••••" minlength="8">
+            <button type="button" onclick="togglePassword('password', 'eye-icon-1')" class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#800000]">
+                <svg id="eye-icon-1" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+            </button>
+        </div>
+        <p id="pass-min-msg" class="hidden text-[10px] text-red-600 font-bold ml-1 italic mt-1 uppercase tracking-wider">Minimal harus 8 karakter!</p>
+    </div>
 
-                {{-- DROPDOWN JABATAN (ROLE) --}}
-                    <div class="space-y-1">
-                        <label class="block text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Jabatan (Role)</label>
-                        <select name="role" required 
-                            class="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:border-[#800000] focus:bg-white transition-all outline-none font-semibold appearance-none">
-                            <option value="">-- Pilih Jabatan --</option>
-                            @foreach($roles as $key => $value)
-                                <option value="{{ $key }}" {{ old('role') == $key ? 'selected' : '' }}>{{ $value }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {{-- DROPDOWN DIVISI --}}
-                        <div class="space-y-1">
-                            <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Divisi</label>
-                            <select name="division" required 
-                                class="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:border-[#800000] focus:bg-white transition-all outline-none font-semibold appearance-none">
-                                <option value="">-- Pilih Divisi --</option>
-                                @foreach($divisions as $div)
-                                    <option value="{{ $div->name }}" {{ old('division') == $div->name ? 'selected' : '' }}>{{ $div->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                         {{-- DROPDOWN CABANG --}}
-                        <div class="space-y-1">
-                            <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Cabang</label>
-                            <select name="branch" required 
-                                class="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:border-[#800000] focus:bg-white transition-all outline-none font-semibold appearance-none">
-                                <option value="">-- Pilih Cabang --</option>
-                                @foreach($branches as $br)
-                                    <option value="{{ $br->code }}" {{ old('branch') == $br->code ? 'selected' : '' }}>{{ $br->name }} ({{ $br->code }})</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
+    {{-- Konfirmasi Sandi --}}
+    <div class="space-y-1 relative">
+        <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Konfirmasi Sandi</label>
+        <div class="relative">
+            <input type="password" name="password_confirmation" id="password_confirmation" required 
+                class="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:border-[#800000] focus:bg-white transition-all outline-none font-semibold"
+                placeholder="••••••••">
+            <button type="button" onclick="togglePassword('password_confirmation', 'eye-icon-2')" class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#800000]">
+                <svg id="eye-icon-2" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+            </button>
+        </div>
+        <p id="match-msg" class="hidden text-[10px] text-red-600 font-bold ml-1 italic mt-1 uppercase tracking-wider">Konfirmasi sandi tidak sesuai!</p>
+    </div>
+</div>
+                     {{-- Input Nomor Telepon (Menggantikan Jabatan dan Divisi) --}}
+{{-- Nomor Telepon --}}
+<div class="space-y-1">
+    <label class="block text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Nomor Telepon</label>
+    <div class="relative">
+        <div class="absolute inset-y-0 left-0 flex items-center pl-6 pointer-events-none">
+            <span class="text-slate-400 text-sm font-bold">+62</span>
+        </div>
+        <input type="text" name="phone" id="phone" required 
+            class="w-full pl-16 pr-6 py-3.5 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:border-[#800000] focus:bg-white transition-all outline-none font-semibold" 
+            placeholder="812xxxxxxx">
+    </div>
+    <p id="phone-error" class="hidden text-[10px] text-red-600 font-bold ml-1 italic mt-1 uppercase tracking-wider">Hanya boleh memasukkan angka!</p>
+</div>
 
+<div class="grid grid-cols-1 md:grid-cols-1 gap-4">
+    {{-- DROPDOWN CABANG (Tetap Dipertahankan) --}}
+    <div class="space-y-1">
+        <label class="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Cabang</label>
+        <select name="branch" required 
+            class="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:border-[#800000] focus:bg-white transition-all outline-none font-semibold appearance-none custom-select">
+            <option value="">-- Pilih Cabang --</option>
+            @foreach($branches as $br)
+                <option value="{{ $br->code }}" {{ old('branch') == $br->code ? 'selected' : '' }}>{{ $br->name }} ({{ $br->code }})</option>
+            @endforeach
+        </select>
+    </div>
+</div>
                     <div class="pt-4">
                         <button type="submit" 
                             class="w-full py-4 px-6 text-white bg-[#800000] hover:bg-black font-extrabold rounded-2xl text-sm shadow-[0_20px_40px_-12px_rgba(128,0,0,0.3)] transition-all duration-500 active:scale-[0.98] flex items-center justify-center gap-3 group tracking-widest uppercase">
@@ -157,4 +169,70 @@
     </div>
 
 </body>
+<script>
+    // Fungsi Show/Hide Password
+    function togglePassword(inputId, iconId) {
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.add('text-[#800000]');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('text-[#800000]');
+        }
+    }
+
+    // Validasi Password & Konfirmasi
+    const password = document.getElementById('password');
+    const confirmPass = document.getElementById('password_confirmation');
+    const matchMsg = document.getElementById('match-msg');
+    const minMsg = document.getElementById('pass-min-msg');
+
+    function validate() {
+        // Validasi Minimal 8 Karakter
+        if (password.value.length > 0 && password.value.length < 8) {
+            minMsg.classList.remove('hidden');
+        } else {
+            minMsg.classList.add('hidden');
+        }
+
+        // Validasi Kesesuaian
+        if (confirmPass.value.length > 0) {
+            if (password.value !== confirmPass.value) {
+                matchMsg.classList.remove('hidden');
+                confirmPass.classList.add('border-red-600');
+            } else {
+                matchMsg.classList.add('hidden');
+                confirmPass.classList.remove('border-red-600');
+            }
+        }
+    }
+
+    password.addEventListener('input', validate);
+    confirmPass.addEventListener('input', validate);
+
+    // Validasi Nomor Telepon (Hanya Angka)
+const phoneInput = document.getElementById('phone');
+const phoneError = document.getElementById('phone-error');
+
+phoneInput.addEventListener('input', function(e) {
+    // Menghapus karakter yang bukan angka
+    const sanitizedValue = this.value.replace(/[^0-9]/g, '');
+    
+    if (this.value !== sanitizedValue) {
+        // Tampilkan pesan error jika ada karakter non-angka
+        phoneError.classList.remove('hidden');
+        this.classList.add('border-red-600');
+        
+        // Paksa nilai input hanya menjadi angka
+        this.value = sanitizedValue;
+    } else {
+        phoneError.classList.add('hidden');
+        this.classList.remove('border-red-600');
+    }
+});
+</script>
+
 </html>
