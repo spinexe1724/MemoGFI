@@ -134,6 +134,21 @@
                             <span>Update Profile</span>
                             <i data-lucide="arrow-right" class="w-4 h-4"></i>
                         </button>
+                        {{-- Pastikan bagian ini ada di dalam file showprofile.blade.php Anda untuk melihat kenapa password gagal --}}
+
+@if ($errors->any())
+<div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-2xl animate-in fade-in slide-in-from-top-4 duration-500">
+    <div class="flex items-center mb-2">
+        <i data-lucide="alert-circle" class="w-5 h-5 text-red-600 mr-2"></i>
+        <span class="text-xs font-black text-red-800 uppercase tracking-widest">Terjadi Kesalahan</span>
+    </div>
+    <ul class="list-disc list-inside text-[11px] font-bold text-red-600 space-y-1 ml-7">
+        @foreach ($errors->all() as $error)
+            <li>{{ $error }}</li>
+        @endforeach
+    </ul>
+</div>
+@endif
                     </div>
                 </div>
             </div>

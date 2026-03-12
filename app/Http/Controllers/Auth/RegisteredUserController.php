@@ -22,14 +22,14 @@ class RegisteredUserController extends Controller
     public function create(): View
     {
         $divisions = Division::orderBy('name', 'asc')->get();
-        $branches = Branch::orderBy('name', 'asc')->get();
+        $branches = Branch::oldest()->get(); 
         
         // Daftar role yang diizinkan untuk registrasi mandiri
         $roles = [
-            'admin' => 'Admin (Branch)',
+            'admin' => 'Admin Cabang',
             'supervisor' => 'Supervisor',
             'manager' => 'Manager',
-            'direksi' => 'direksi',
+            'direksi' => 'Direksi',
             'bm' => 'Branch Manager'        ];
 
         return view('auth.register', compact('divisions', 'branches', 'roles'));
