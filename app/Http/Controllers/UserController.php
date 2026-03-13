@@ -191,4 +191,18 @@ class UserController extends Controller
 
         return redirect()->route('users.index')->with('success', 'User dihapus secara permanen dari sistem.');
     }
+
+     public function verification()
+    {
+        if (Auth::user()->role !== 'superadmin') abort(403);
+
+        // Mengambil user dengan role 'pending' atau level 0
+        $pendingUsers = User::where('role', 'pending')
+                            ->orWhere('level', 0)
+                            ->latest()
+                            ->get();
+
+        return view('users.users-verification', compact('pendingUsers'));
+    }
+
 }

@@ -121,7 +121,7 @@
         <div class="absolute inset-y-0 left-0 flex items-center pl-6 pointer-events-none">
             <span class="text-slate-400 text-sm font-bold">+62</span>
         </div>
-        <input type="text" name="phone" id="phone" required 
+        <input type="text" name="phone_number" id="phone" required 
             class="w-full pl-16 pr-6 py-3.5 bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:border-[#800000] focus:bg-white transition-all outline-none font-semibold" 
             placeholder="812xxxxxxx">
     </div>

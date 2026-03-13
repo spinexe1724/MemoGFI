@@ -57,6 +57,9 @@ Route::delete('/attachments/{id}', [MemoController::class, 'destroyAttachment'])
         Route::get('/showprofile', [ShowController::class, 'show'])->name('profile.show');
         Route::put('/profile', [ShowController::class, 'update'])->name('show.update');
     });
+     Route::get('/users-verification', [UserController::class, 'verification'])->name('users.verification');
+    Route::resource('users', UserController::class);
+
 
     
     // Rute Khusus Persetujuan & Penolakan (GM & Direksi)

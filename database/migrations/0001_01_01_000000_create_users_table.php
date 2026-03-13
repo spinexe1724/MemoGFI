@@ -19,6 +19,7 @@ return new class extends Migration
     $table->string('password');
     $table->string('role')->default('supervisor'); // superadmin, gm, staff
      $table->string('division')->nullable();   // Tambahan Field Divisi
+     $table->string('phone_number')->nullable();   // Tambahan Field Divisi
     $table->rememberToken();
     $table->timestamps();
 });

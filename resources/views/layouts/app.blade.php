@@ -56,6 +56,25 @@
                             <i data-lucide="map-pin" class="w-5 h-5 mr-3"></i>
                             <span class="font-bold text-sm">Manajemen Cabang</span>
                         </a>
+                          {{-- MENU VERIFIKASI BARU --}}
+        <a href="{{ route('users.verification') }}" 
+           class="flex items-center px-4 py-3 rounded-xl transition-all duration-200 group {{ request()->routeIs('users.verification') ? 'bg-amber-600 text-white font-bold shadow-lg shadow-amber-200' : 'text-gray-500 hover:bg-amber-50 hover:text-amber-600' }}">
+            <div class="relative">
+                <i data-lucide="shield-check" class="w-5 h-5 mr-3"></i>
+                @php
+                    $pendingCount = \App\Models\User::where('role', 'pending')->count();
+                @endphp
+                @if($pendingCount > 0)
+                    <span class="absolute -top-2 -right-1 flex h-4 w-4">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-4 w-4 bg-amber-500 text-[8px] text-white items-center justify-center font-black">{{ $pendingCount }}</span>
+                    </span>
+                @endif
+            </div>
+            <span class="text-sm">Verifikasi User</span>
+        </a>
+
+      
                     </div>
                 </div>
             @else
