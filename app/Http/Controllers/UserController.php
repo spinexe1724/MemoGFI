@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules;
 
+
 class UserController extends Controller
 {
     /**
@@ -48,17 +49,7 @@ class UserController extends Controller
         return view('users.create', compact('divisions', 'branches'));
     }
 
-    public function verify(Request $request, $id)
-{
-    $user = User::findOrFail($id);
-    $user->update([
-        'role' => $request->role,
-        'division' => $request->division,
-        'status' => 'active', // atau logic status lainnya
-    ]);
-
-    return redirect()->back()->with('success', 'User ' . $user->name . ' berhasil diverifikasi!');
-}
+ 
 
     /**
      * Menyimpan pengguna baru ke database.
@@ -204,17 +195,52 @@ class UserController extends Controller
         return redirect()->route('users.index')->with('success', 'User dihapus secara permanen dari sistem.');
     }
 
-     public function verification()
+ public function verification()
     {
         if (Auth::user()->role !== 'superadmin') abort(403);
 
-        // Mengambil user dengan role 'pending' atau level 0
         $pendingUsers = User::where('role', 'pending')
                             ->orWhere('level', 0)
                             ->latest()
                             ->get();
+        
+        $divisions = Division::orderBy('name', 'asc')->get();
+        
+        // Data level untuk dropdown di modal verifikasi
+        $levels = [
+            '2' => 'Level 2 (Akses Divisi)',
+            '3' => 'Level 3 (Akses Global)'
+        ];
 
-        return view('users.users-verification', compact('pendingUsers'));
+        return view('users.users-verification', compact('pendingUsers', 'divisions', 'levels'));
+    }
+
+    /**
+     * Memproses verifikasi via Modal.
+     */
+    public function verify(Request $request, $id)
+    {
+        if (Auth::user()->role !== 'superadmin') abort(403);
+
+        $request->validate([
+            'role' => ['required', 'in:superadmin,gm,direksi,supervisor,admin,ga,manager,bm,staff'],
+            'division' => ['required'],
+            'level' => ['required', 'in:2,3'],
+        ], [
+            'role.required' => 'Role wajib dipilih.',
+            'division.required' => 'Divisi wajib dipilih.',
+            'level.required' => 'Level akses wajib ditentukan.',
+        ]);
+
+        $user = User::findOrFail($id);
+        
+        $user->update([
+            'role' => $request->role,
+            'division' => $request->division,
+            'level' => $request->level,
+        ]);
+
+        return redirect()->route('users.verification')->with('success', 'User ' . $user->name . ' telah berhasil diaktifkan.');
     }
 
 }
