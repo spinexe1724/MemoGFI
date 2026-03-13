@@ -48,6 +48,18 @@ class UserController extends Controller
         return view('users.create', compact('divisions', 'branches'));
     }
 
+    public function verify(Request $request, $id)
+{
+    $user = User::findOrFail($id);
+    $user->update([
+        'role' => $request->role,
+        'division' => $request->division,
+        'status' => 'active', // atau logic status lainnya
+    ]);
+
+    return redirect()->back()->with('success', 'User ' . $user->name . ' berhasil diverifikasi!');
+}
+
     /**
      * Menyimpan pengguna baru ke database.
      */

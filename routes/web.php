@@ -58,6 +58,7 @@ Route::delete('/attachments/{id}', [MemoController::class, 'destroyAttachment'])
         Route::put('/profile', [ShowController::class, 'update'])->name('show.update');
     });
      Route::get('/users-verification', [UserController::class, 'verification'])->name('users.verification');
+     Route::put('/users/{id}/verify', [UserController::class, 'verify'])->name('users.verify');
     Route::resource('users', UserController::class);
 
 
