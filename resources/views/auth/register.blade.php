@@ -60,7 +60,49 @@
                     <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Buat Akun</h2>
                     <p class="text-slate-400 mt-2 font-medium">Lengkapi data diri Anda untuk mendaftar</p>
                 </div>
+{{-- Alert Notifikasi Sukses --}}
+@if (session('success'))
+<div id="success-alert" class="mb-6 flex items-center p-4 bg-emerald-50 border border-emerald-100 rounded-2xl shadow-sm animate-fade-in-down">
+    <div class="flex-shrink-0 bg-emerald-500 p-2 rounded-xl">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+        </svg>
+    </div>
+    <div class="ml-4 text-left">
+        <p class="text-xs font-black uppercase tracking-widest text-emerald-800">Berhasil!</p>
+        <p class="text-sm text-emerald-600 font-medium">{{ session('success') }}</p>
+    </div>
+    <button type="button" onclick="document.getElementById('success-alert').remove()" class="ml-auto text-emerald-400 hover:text-emerald-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+    </button>
+</div>
+@endif
 
+{{-- Alert Notifikasi Error (Jika validasi gagal) --}}
+@if ($errors->any())
+<div id="error-alert" class="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl shadow-sm">
+    <div class="flex items-center mb-2">
+        <i class="bg-red-500 p-1.5 rounded-lg mr-3">
+            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </i>
+        <span class="text-xs font-black uppercase tracking-widest text-red-800">Terjadi Kesalahan</span>
+        <button type="button" onclick="document.getElementById('error-alert').remove()" class="ml-auto text-red-400 hover:text-red-600">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    </div>
+    <ul class="list-disc list-inside text-xs text-red-600 font-medium space-y-1 ml-1">
+        @foreach ($errors->all() as $error)
+            <li>{{ $error }}</li>
+        @endforeach
+    </ul>
+</div>
+@endif
                 <form action="{{ route('register') }}" method="POST" class="space-y-5">
                     @csrf
                     

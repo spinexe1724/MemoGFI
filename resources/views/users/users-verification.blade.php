@@ -117,10 +117,10 @@
                                     </td>
                                     <td class="px-6 py-6 text-right">
                                         <button 
-                                            onclick="openVerifyModal('{{ $user->id }}', '{{ $user->name }}')"
-                                            class="inline-flex items-center px-6 py-3 bg-amber-600 hover:bg-black text-white text-[10px] font-black rounded-xl transition-all shadow-lg shadow-amber-200 uppercase italic tracking-widest">
-                                            <i data-lucide="shield-check" class="w-4 h-4 mr-2"></i> Verifikasi
-                                        </button>
+    onclick="openVerifyModal('{{ $user->id }}', '{{ $user->name }}')"
+    class="inline-flex items-center px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black rounded-xl transition-all shadow-lg shadow-emerald-100 uppercase italic tracking-widest">
+    <i data-lucide="shield-check" class="w-4 h-4 mr-2"></i> Verifikasi
+</button>
                                     </td>
                                 </tr>
                                 @endforeach
@@ -200,10 +200,10 @@
                     <button type="button" onclick="closeVerifyModal()" class="flex-1 px-6 py-4 bg-gray-100 hover:bg-gray-200 text-gray-500 text-[10px] font-black rounded-2xl transition-all uppercase tracking-widest italic">
                         Batal
                     </button>
-                    <button type="submit" class="flex-[2] px-6 py-4 bg-amber-600 hover:bg-black text-white text-[10px] font-black rounded-2xl transition-all shadow-xl shadow-amber-200 uppercase tracking-widest italic flex items-center justify-center gap-2">
-                        <i data-lucide="save" class="w-4 h-4"></i>
-                        Aktifkan Akun
-                    </button>
+                    <button type="submit" class="flex-[2] px-6 py-4 bg-emerald-600 hover:bg-black text-white text-[10px] font-black rounded-2xl transition-all shadow-xl shadow-emerald-100 uppercase tracking-widest italic flex items-center justify-center gap-2">
+    <i data-lucide="save" class="w-4 h-4"></i>
+    Aktifkan Akun
+</button>
                 </div>
             </form>
         </div>
